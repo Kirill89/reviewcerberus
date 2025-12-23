@@ -88,7 +88,6 @@ reviewcerberus/
 │       ├── agent.py                     # Agent setup
 │       ├── model.py                     # Model setup (multi-provider)
 │       ├── caching_bedrock_client.py    # Bedrock caching wrapper
-│       ├── caching_anthropic_client.py  # Anthropic caching wrapper
 │       ├── system.py                    # Review prompt
 │       ├── schema.py                    # Context model
 │       ├── runner.py                    # Agent runner

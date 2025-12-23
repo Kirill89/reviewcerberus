@@ -23,7 +23,7 @@ docker run --rm -it -v $(pwd):/repo \
   -e AWS_ACCESS_KEY_ID=your_key \
   -e AWS_SECRET_ACCESS_KEY=your_secret \
   -e AWS_REGION_NAME=us-east-1 \
-  kirill89/reviewcerberus:latest \
+  kirill89/reviewcerberus-cli:latest \
   --repo-path /repo --output /repo/review.md
 ```
 
@@ -32,7 +32,7 @@ docker run --rm -it -v $(pwd):/repo \
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
   -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
-  kirill89/reviewcerberus:latest \
+  kirill89/reviewcerberus-cli:latest \
   --repo-path /repo --output /repo/review.md
 ```
 
@@ -41,7 +41,7 @@ docker run --rm -it -v $(pwd):/repo \
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
   -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
-  kirill89/reviewcerberus:latest \
+  kirill89/reviewcerberus-cli:latest \
   --repo-path /repo --target-branch develop --output /repo/review.md
 ```
 
@@ -271,7 +271,6 @@ src/
     ├── agent.py                     # Agent configuration
     ├── model.py                     # Model setup (Bedrock/Anthropic)
     ├── caching_bedrock_client.py    # Bedrock caching wrapper
-    ├── caching_anthropic_client.py  # Anthropic caching wrapper
     ├── system.py                    # Review prompt
     ├── schema.py                    # Data models
     ├── runner.py                    # Review execution

@@ -20,7 +20,14 @@ _anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_API_KEY = SecretStr(_anthropic_key)
 
 # Model configuration
-MODEL_NAME = os.getenv("MODEL_NAME", "us.anthropic.claude-sonnet-4-5-20250929-v1:0" if MODEL_PROVIDER == "bedrock" else "claude-sonnet-4-5-20250929")
+MODEL_NAME = os.getenv(
+    "MODEL_NAME",
+    (
+        "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        if MODEL_PROVIDER == "bedrock"
+        else "claude-sonnet-4-5-20250929"
+    ),
+)
 MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "8192"))
 RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "200"))
 
