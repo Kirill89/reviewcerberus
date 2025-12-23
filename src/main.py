@@ -7,6 +7,7 @@ from pathlib import Path
 from .agent.runner import run_review
 from .agent.schema import Context
 from .agent.tools.changed_files import FileChange, _changed_files_impl
+from .config import MODEL_NAME, MODEL_PROVIDER
 
 
 def get_current_branch(repo_path: str) -> str:
@@ -71,6 +72,14 @@ def print_summary(
     print()
 
 
+def print_model_config(has_instructions: bool) -> None:
+    print(f"Model provider: {MODEL_PROVIDER}")
+    print(f"Model: {MODEL_NAME}")
+    if has_instructions:
+        print("Additional instructions: Yes")
+    print()
+
+
 def print_changed_files_summary(changed_files: list[FileChange]) -> None:
     print(f"Found {len(changed_files)} changed files:")
     for f in changed_files[:10]:
@@ -100,6 +109,7 @@ def main() -> None:
 
     output_file = determine_output_file(args.output, current_branch)
     print_summary(repo_path, current_branch, args.target_branch, output_file)
+    print_model_config(has_instructions=bool(args.instructions))
 
     try:
         changed_files = _changed_files_impl(repo_path, args.target_branch)

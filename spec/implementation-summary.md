@@ -7,7 +7,9 @@ AI-powered code review tool that analyzes Git branch differences and generates c
 **Tech Stack:**
 - Python 3.11+
 - LangChain 1.2.0 + LangGraph
-- AWS Bedrock Claude (boto3 1.42.15)
+- **Multi-provider support:**
+  - AWS Bedrock Claude (boto3 1.42.15, langchain-aws 1.1.0)
+  - Anthropic API (langchain-anthropic 1.3.0)
 - Git (subprocess)
 - pytest
 
@@ -21,16 +23,25 @@ AI-powered code review tool that analyzes Git branch differences and generates c
 
 ## Design Decisions
 
-### 1. Simplified Branch Model
+### 1. Multi-Provider Architecture
+Support both AWS Bedrock and Anthropic API as alternative providers (not simultaneous). User selects via `MODEL_PROVIDER` env variable. Provider-specific initialization is conditional to avoid unnecessary dependencies.
+
+**Key features:**
+- Default to Bedrock for backward compatibility
+- Prompt caching supported for both providers (Bedrock: explicit cache points, Anthropic: automatic caching)
+- Clear error messages for missing credentials based on selected provider
+- All imports at top level (no conditional imports)
+
+### 2. Simplified Branch Model
 Always review HEAD vs target branch. No source_branch parameter - matches natural git workflow (checkout branch → run review).
 
-### 2. Changed Files in Context
+### 3. Changed Files in Context
 Computed once at initialization and provided directly to agent. Saves tool call overhead.
 
-### 3. Hunk-Based Diff Pagination
+### 4. Hunk-Based Diff Pagination
 Use semantic units (@@...@@ sections) instead of line numbers. Default 1-20 hunks. Agent can paginate.
 
-### 4. Tool Architecture Pattern
+### 5. Tool Architecture Pattern
 ```python
 # Business logic (pure, testable)
 def _tool_impl(...) -> Result:
@@ -45,21 +56,23 @@ def tool_name(...) -> Result | ToolMessage:
         return ToolMessage(...)
 ```
 
-### 5. Progress Visualization
+### 6. Progress Visualization
 Real-time progress display:
 - Thinking duration (🤔 with timing)
 - Tool calls logged directly from @tool wrappers (🔧)
 - Simple, clean output
 - Token usage summary at end
 
-### 6. Configuration via Environment Variables
+### 7. Configuration via Environment Variables
 All configuration centralized in `src/config.py`:
-- AWS credentials
+- Provider selection (MODEL_PROVIDER)
+- AWS credentials (for Bedrock)
+- Anthropic API key (for Anthropic API)
 - Model name and parameters
 - Recursion limit
 - Overridable via .env file
 
-### 7. Additional Instructions
+### 8. Additional Instructions
 Users can provide custom review guidelines via `--instructions` parameter, allowing project-specific review criteria.
 
 ---
@@ -73,7 +86,9 @@ review-bot/
 │   ├── main.py                          # CLI entry point
 │   └── agent/
 │       ├── agent.py                     # Agent setup
-│       ├── model.py                     # Bedrock config
+│       ├── model.py                     # Model setup (multi-provider)
+│       ├── caching_bedrock_client.py    # Bedrock caching wrapper
+│       ├── caching_anthropic_client.py  # Anthropic caching wrapper
 │       ├── system.py                    # Review prompt
 │       ├── schema.py                    # Context model
 │       ├── runner.py                    # Agent runner
@@ -193,27 +208,50 @@ def my_function(x, y):  # ✗ Error: missing annotations
 
 ## Configuration
 
-**.env:**
-```
+**.env (Bedrock):**
+```bash
+MODEL_PROVIDER=bedrock  # default
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_REGION_NAME=us-east-1
+MODEL_NAME=us.anthropic.claude-sonnet-4-5-20250929-v1:0
 ```
 
-**Model (configured via src/config.py):**
-```python
-# Default configuration (overridable via .env)
-MODEL_NAME = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-MAX_OUTPUT_TOKENS = 8192
-RECURSION_LIMIT = 200
+**.env (Anthropic API):**
+```bash
+MODEL_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+MODEL_NAME=claude-sonnet-4-5-20250929
+```
 
-model = init_chat_model(
-    MODEL_NAME,
-    client=caching_bedrock_client,
-    model_provider="bedrock_converse",
-    temperature=0.0,
-    max_tokens=MAX_OUTPUT_TOKENS,
-)
+**Model Initialization (src/agent/model.py):**
+```python
+# All imports at top level (no conditional imports)
+from typing import Any
+import boto3
+from botocore.config import Config
+from langchain.chat_models import init_chat_model
+from langchain_anthropic import ChatAnthropic
+
+# Provider-specific initialization
+if MODEL_PROVIDER == "bedrock":
+    bedrock_client = boto3.client(...)
+    caching_client = CachingBedrockClient(bedrock_client)
+    model = init_chat_model(
+        MODEL_NAME,
+        client=caching_client,
+        model_provider="bedrock_converse",
+        temperature=0.0,
+        max_tokens=MAX_OUTPUT_TOKENS,
+    )
+elif MODEL_PROVIDER == "anthropic":
+    # ChatAnthropic automatically uses ANTHROPIC_API_KEY environment variable
+    base_model = ChatAnthropic(
+        model_name=MODEL_NAME,
+        temperature=0.0,
+        max_tokens_to_sample=MAX_OUTPUT_TOKENS,
+    )
+    model = CachingAnthropicClient(base_model)
 ```
 
 ---
