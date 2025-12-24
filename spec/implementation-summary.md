@@ -97,6 +97,46 @@ All configuration centralized in `src/config.py`:
 Users can provide custom review guidelines via `--instructions` parameter,
 allowing project-specific review criteria.
 
+### 9. Context Management & Summarization
+
+Automatic context management prevents token limit exhaustion during large PR
+reviews:
+
+**Architecture:**
+
+- `SummarizingMiddleware` monitors token count in agent loop
+- Triggers at `CONTEXT_COMPACT_THRESHOLD` (default: 140k tokens)
+- Injects summarization request into conversation
+- Agent generates summary of findings so far
+- Middleware compacts history: keeps only [initial request + summary]
+- Agent continues review with ~95k tokens freed
+
+**Key Features:**
+
+- Custom summary prompt (`REVIEW_SUMMARY_PROMPT`) preserves:
+  - Files analyzed and findings discovered (by severity)
+  - Files remaining to review
+  - Investigation threads and next steps
+- Configurable threshold via `CONTEXT_COMPACT_THRESHOLD` env var
+- Transparent logging when summarization triggers
+
+### 10. Tool Output Protection
+
+Tools implement line truncation to prevent context explosion from minified
+code/generated files:
+
+**search_in_files:**
+
+- Lines truncated to 300 characters
+- Appends `[truncated due to line size]` message
+- Prevents massive outputs (e.g., 669k char lines in JSON files)
+- Test coverage: `test_search_in_files_truncates_long_lines`
+
+**Impact:**
+
+- Without truncation: 438k tokens from 25 matches (context explosion)
+- With truncation: 1.5k tokens from 25 matches (295x reduction)
+
 ______________________________________________________________________
 
 ## Project Structure

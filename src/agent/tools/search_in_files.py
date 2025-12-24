@@ -15,12 +15,20 @@ class SearchMatch(BaseModel):
     match_context: str
 
 
+def _truncate_line(line: str, max_length: int) -> str:
+    """Truncate line if it exceeds max length."""
+    if len(line) <= max_length:
+        return line
+    return line[:max_length] + " [truncated due to line size]"
+
+
 def _search_in_files_impl(
     repo_path: str,
     pattern: str,
     file_pattern: str | None = None,
     context_lines: int = 2,
     max_results: int = 50,
+    max_line_length: int = 300,
 ) -> list[SearchMatch]:
     cmd = ["git", "-C", repo_path, "grep", "-n", f"-C{context_lines}", pattern, "HEAD"]
     if file_pattern:
@@ -57,9 +65,14 @@ def _search_in_files_impl(
                                 file_path=current_file,
                                 line_number=current_line_num,
                                 line_content=(
-                                    current_content[0] if current_content else ""
+                                    _truncate_line(current_content[0], max_line_length)
+                                    if current_content
+                                    else ""
                                 ),
-                                match_context="\n".join(current_content),
+                                match_context="\n".join(
+                                    _truncate_line(line, max_line_length)
+                                    for line in current_content
+                                ),
                             )
                         )
                         if len(matches) >= max_results:
@@ -77,8 +90,14 @@ def _search_in_files_impl(
             SearchMatch(
                 file_path=current_file,
                 line_number=current_line_num,
-                line_content=current_content[0] if current_content else "",
-                match_context="\n".join(current_content),
+                line_content=(
+                    _truncate_line(current_content[0], max_line_length)
+                    if current_content
+                    else ""
+                ),
+                match_context="\n".join(
+                    _truncate_line(line, max_line_length) for line in current_content
+                ),
             )
         )
 
@@ -92,15 +111,25 @@ def search_in_files(
     file_pattern: str | None = None,
     context_lines: int = 2,
     max_results: int = 50,
+    max_line_length: int = 300,
 ) -> list[SearchMatch] | ToolMessage:
-    """Search for text patterns across files in the repository."""
+    """Search for text patterns across files in the repository.
+
+    Lines longer than max_line_length characters will be truncated to prevent
+    massive outputs from minified code or generated files.
+    """
     if file_pattern:
         print(f"🔧 search_in_files: '{pattern}' in {file_pattern}")
     else:
         print(f"🔧 search_in_files: '{pattern}'")
     try:
         return _search_in_files_impl(
-            runtime.context.repo_path, pattern, file_pattern, context_lines, max_results
+            runtime.context.repo_path,
+            pattern,
+            file_pattern,
+            context_lines,
+            max_results,
+            max_line_length,
         )
     except Exception as e:
         print(f"   ✗ Error: {str(e)}")

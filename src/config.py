@@ -31,6 +31,9 @@ MODEL_NAME = os.getenv(
 MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "8192"))
 RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "200"))
 
+# Context management
+CONTEXT_COMPACT_THRESHOLD = int(os.getenv("CONTEXT_COMPACT_THRESHOLD", "140000"))
+
 # Validate required credentials based on provider
 if MODEL_PROVIDER == "bedrock":
     if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION_NAME]):
