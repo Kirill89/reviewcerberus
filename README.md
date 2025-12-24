@@ -4,20 +4,24 @@
   <img src="logo_256.png" alt="ReviewCerberus Logo" width="256" />
 </p>
 
-AI-powered code review tool that analyzes git branch differences and generates comprehensive review reports.
+AI-powered code review tool that analyzes git branch differences and generates
+comprehensive review reports.
 
 ## Features
 
 - **Multi-Provider Support**: Use AWS Bedrock or Anthropic API
 - **Automated Code Review**: Uses AI to analyze code changes between branches
-- **Comprehensive Analysis**: Reviews logic, security, performance, code quality, and more
-- **Token Efficient**: Smart tools for partial file reading, diff pagination, and search with prompt caching
+- **Comprehensive Analysis**: Reviews logic, security, performance, code
+  quality, and more
+- **Token Efficient**: Smart tools for partial file reading, diff pagination,
+  and search with prompt caching
 - **Markdown Output**: Generates readable review reports
 - **Git Integration**: Works with any git repository
 
 ## Quick Start (Docker - Recommended)
 
 **For AWS Bedrock:**
+
 ```bash
 docker run --rm -it -v $(pwd):/repo \
   -e AWS_ACCESS_KEY_ID=your_key \
@@ -28,6 +32,7 @@ docker run --rm -it -v $(pwd):/repo \
 ```
 
 **For Anthropic API:**
+
 ```bash
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
@@ -37,6 +42,7 @@ docker run --rm -it -v $(pwd):/repo \
 ```
 
 **With custom options:**
+
 ```bash
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
@@ -51,17 +57,20 @@ If you want to modify or develop ReviewCerberus:
 
 1. Clone the repository
 2. Install dependencies:
+
 ```bash
 poetry install
 ```
 
 3. Configure AI provider credentials in `.env`:
+
 ```bash
 cp .env.example .env
 # Edit .env with your credentials
 ```
 
 **For AWS Bedrock (default):**
+
 ```
 AWS_ACCESS_KEY_ID=your_key
 AWS_SECRET_ACCESS_KEY=your_secret
@@ -69,6 +78,7 @@ AWS_REGION_NAME=us-east-1
 ```
 
 **For Anthropic API:**
+
 ```
 MODEL_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-your-api-key
@@ -76,6 +86,7 @@ MODEL_NAME=claude-sonnet-4-5-20250929
 ```
 
 Optional configuration (defaults shown):
+
 ```
 MAX_OUTPUT_TOKENS=8192
 RECURSION_LIMIT=200
@@ -86,6 +97,7 @@ RECURSION_LIMIT=200
 ### Basic Usage
 
 Review current branch against `main`:
+
 ```bash
 poetry run reviewcerberus
 ```
@@ -93,6 +105,7 @@ poetry run reviewcerberus
 ### Custom Target Branch
 
 Review against a different branch:
+
 ```bash
 poetry run reviewcerberus --target-branch develop
 ```
@@ -100,6 +113,7 @@ poetry run reviewcerberus --target-branch develop
 ### Custom Output File
 
 Specify output file location:
+
 ```bash
 poetry run reviewcerberus --output my-review.md
 ```
@@ -107,6 +121,7 @@ poetry run reviewcerberus --output my-review.md
 ### Review Different Repository
 
 Review a repository outside current directory:
+
 ```bash
 poetry run reviewcerberus --repo-path /path/to/repo
 ```
@@ -114,11 +129,13 @@ poetry run reviewcerberus --repo-path /path/to/repo
 ### Custom Instructions
 
 Provide additional instructions to the reviewer:
+
 ```bash
 poetry run reviewcerberus --instructions review-guidelines.md
 ```
 
 Example `review-guidelines.md`:
+
 ```markdown
 # Additional Review Guidelines
 
@@ -146,11 +163,13 @@ poetry run reviewcerberus --target-branch main --output review.md --instructions
    - Review commit messages
 4. Generates comprehensive markdown review report
 
-**Note:** Output filenames are automatically sanitized. For example, branch `feature/new-feature` generates `review_feature_new-feature.md`.
+**Note:** Output filenames are automatically sanitized. For example, branch
+`feature/new-feature` generates `review_feature_new-feature.md`.
 
 ## Progress Visualization
 
 The tool displays real-time progress:
+
 ```
 Repository: /Users/kirill/Mobb/autofixer
 Current branch: feature-branch
@@ -186,6 +205,7 @@ Token Usage:
 ```
 
 Shows:
+
 - Thinking duration for each LLM call
 - Tool calls with key parameters
 - Total token usage (aggregated across all LLM calls)
@@ -222,11 +242,13 @@ Generated review includes:
 ### Building Docker Image
 
 To build the Docker image locally:
+
 ```bash
 make docker-build
 ```
 
 To build and push to Docker Hub (multi-platform):
+
 ```bash
 VERSION=0.1.0 make docker-build-push
 ```
@@ -244,6 +266,7 @@ poetry run pytest -v
 ### Linting
 
 Check code quality with mypy, isort, and black:
+
 ```bash
 make lint
 ```
@@ -251,11 +274,13 @@ make lint
 ### Format Code
 
 Auto-format code with isort and black:
+
 ```bash
 make format
 ```
 
 The project enforces strict type checking:
+
 - All functions require type annotations (`disallow_untyped_defs = true`)
 - Return types must be explicit (`warn_return_any = true`)
 - Imports are sorted consistently (isort with black profile)
@@ -300,11 +325,13 @@ The AI agent has access to specialized tools:
 All configuration is managed through environment variables in `.env`:
 
 ### Provider Selection
+
 ```bash
 MODEL_PROVIDER=bedrock  # or "anthropic" (default: bedrock)
 ```
 
 ### AWS Bedrock Configuration (Required if MODEL_PROVIDER=bedrock)
+
 ```bash
 AWS_ACCESS_KEY_ID=your_key
 AWS_SECRET_ACCESS_KEY=your_secret
@@ -312,11 +339,13 @@ AWS_REGION_NAME=us-east-1
 ```
 
 ### Anthropic API Configuration (Required if MODEL_PROVIDER=anthropic)
+
 ```bash
 ANTHROPIC_API_KEY=sk-ant-your-api-key-here
 ```
 
 ### Model Configuration (Optional)
+
 ```bash
 # AI model to use
 # For Bedrock (default):

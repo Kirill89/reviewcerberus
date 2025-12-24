@@ -29,6 +29,6 @@ def test_full_review_workflow() -> None:
 
         # Verify token usage is returned
         assert token_usage is not None
-        assert "input_tokens" in token_usage
+        assert "total_input_tokens" in token_usage
         assert "output_tokens" in token_usage
         assert "total_tokens" in token_usage

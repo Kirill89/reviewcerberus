@@ -2,9 +2,12 @@
 
 ## Overview
 
-AI-powered code review tool that analyzes Git branch differences and generates comprehensive review reports. Built with minimalism and token efficiency as core principles.
+AI-powered code review tool that analyzes Git branch differences and generates
+comprehensive review reports. Built with minimalism and token efficiency as core
+principles.
 
 **Tech Stack:**
+
 - Python 3.11+
 - LangChain 1.2.0 + LangGraph
 - **Multi-provider support:**
@@ -14,34 +17,47 @@ AI-powered code review tool that analyzes Git branch differences and generates c
 - pytest
 
 **Code Quality:**
+
 - mypy (strict type checking: `disallow_untyped_defs`, `warn_return_any`)
 - black (code formatting)
 - isort (import sorting)
 - Makefile for test/lint/format commands
 
----
+______________________________________________________________________
 
 ## Design Decisions
 
 ### 1. Multi-Provider Architecture
-Support both AWS Bedrock and Anthropic API as alternative providers (not simultaneous). User selects via `MODEL_PROVIDER` env variable. Provider-specific initialization is conditional to avoid unnecessary dependencies.
+
+Support both AWS Bedrock and Anthropic API as alternative providers (not
+simultaneous). User selects via `MODEL_PROVIDER` env variable. Provider-specific
+initialization is conditional to avoid unnecessary dependencies.
 
 **Key features:**
+
 - Default to Bedrock for backward compatibility
-- Prompt caching supported for both providers (Bedrock: explicit cache points, Anthropic: automatic caching)
+- Prompt caching supported for both providers (Bedrock: explicit cache points,
+  Anthropic: automatic caching)
 - Clear error messages for missing credentials based on selected provider
 - All imports at top level (no conditional imports)
 
 ### 2. Simplified Branch Model
-Always review HEAD vs target branch. No source_branch parameter - matches natural git workflow (checkout branch → run review).
+
+Always review HEAD vs target branch. No source_branch parameter - matches
+natural git workflow (checkout branch → run review).
 
 ### 3. Changed Files in Context
-Computed once at initialization and provided directly to agent. Saves tool call overhead.
+
+Computed once at initialization and provided directly to agent. Saves tool call
+overhead.
 
 ### 4. Hunk-Based Diff Pagination
-Use semantic units (@@...@@ sections) instead of line numbers. Default 1-20 hunks. Agent can paginate.
+
+Use semantic units (@@...@@ sections) instead of line numbers. Default 1-20
+hunks. Agent can paginate.
 
 ### 5. Tool Architecture Pattern
+
 ```python
 # Business logic (pure, testable)
 def _tool_impl(...) -> Result:
@@ -57,14 +73,18 @@ def tool_name(...) -> Result | ToolMessage:
 ```
 
 ### 6. Progress Visualization
+
 Real-time progress display:
+
 - Thinking duration (🤔 with timing)
 - Tool calls logged directly from @tool wrappers (🔧)
 - Simple, clean output
 - Token usage summary at end
 
 ### 7. Configuration via Environment Variables
+
 All configuration centralized in `src/config.py`:
+
 - Provider selection (MODEL_PROVIDER)
 - AWS credentials (for Bedrock)
 - Anthropic API key (for Anthropic API)
@@ -73,9 +93,11 @@ All configuration centralized in `src/config.py`:
 - Overridable via .env file
 
 ### 8. Additional Instructions
-Users can provide custom review guidelines via `--instructions` parameter, allowing project-specific review criteria.
 
----
+Users can provide custom review guidelines via `--instructions` parameter,
+allowing project-specific review criteria.
+
+______________________________________________________________________
 
 ## Project Structure
 
@@ -103,7 +125,7 @@ reviewcerberus/
     └── implementation-summary.md  (this file)
 ```
 
----
+______________________________________________________________________
 
 ## Implemented Tools
 
@@ -114,21 +136,23 @@ reviewcerberus/
 5. **search_in_files** - Search patterns
 6. **list_files** - List repository files
 
----
+______________________________________________________________________
 
 ## Testing Strategy
 
 Integration tests with real git repositories:
+
 - No mocking of git commands
 - Context manager creates/cleans temp repos
-- Tests call _impl functions directly
+- Tests call \_impl functions directly
 - One scenario per test
 
----
+______________________________________________________________________
 
 ## Code Quality & Tooling
 
 ### Makefile Commands
+
 ```bash
 make test    # Run pytest
 make lint    # Run mypy, isort --check, black --check
@@ -136,6 +160,7 @@ make format  # Run isort and black to auto-format
 ```
 
 ### Type Checking (mypy)
+
 ```toml
 [tool.mypy]
 python_version = "3.11"
@@ -146,6 +171,7 @@ disallow_untyped_defs = true     # All functions need type annotations
 ```
 
 All functions must have complete type signatures:
+
 ```python
 def my_function(x: int, y: str) -> bool:  # ✓ Good
     return True
@@ -155,10 +181,11 @@ def my_function(x, y):  # ✗ Error: missing annotations
 ```
 
 ### Code Formatting
+
 - **black**: Automatic code formatting (line length 88)
 - **isort**: Import sorting with black profile for compatibility
 
----
+______________________________________________________________________
 
 ## Token Efficiency
 
@@ -169,11 +196,12 @@ def my_function(x, y):  # ✗ Error: missing annotations
 - Configurable context lines
 - Prompt caching enabled
 
----
+______________________________________________________________________
 
 ## Guidelines
 
 ### Adding New Tools
+
 1. Implement `_tool_name_impl` (business logic - pure, no logging)
 2. Add `@tool` wrapper (logging + error handling)
 3. Create test
@@ -181,33 +209,38 @@ def my_function(x, y):  # ✗ Error: missing annotations
 5. Update tools-specification.md
 
 ### Code Style
+
 - Minimalism first
 - No unnecessary abstractions
 - Code should be self-documenting
-- **Strict type checking**: All functions must have complete type annotations (enforced by mypy)
+- **Strict type checking**: All functions must have complete type annotations
+  (enforced by mypy)
 - Return types required for all functions (including `-> None`)
 - Use `Any` type for complex third-party types without proper stubs
 - Keep functions small
 
 ### Testing
+
 - Integration over unit tests
 - Use real git operations
-- Test _impl functions directly
+- Test \_impl functions directly
 - Minimal but thorough assertions
 - Run with `make test` or `poetry run pytest -v`
 
 ### Progress Display
+
 - Each `@tool` wrapper logs directly with `print()`
 - Simple format: `🔧 tool_name: key_info`
 - Error logging: `✗ Error: message`
 - Callback handler tracks thinking duration
 - No complex parsing needed
 
----
+______________________________________________________________________
 
 ## Configuration
 
 **.env (Bedrock):**
+
 ```bash
 MODEL_PROVIDER=bedrock  # default
 AWS_ACCESS_KEY_ID=...
@@ -217,6 +250,7 @@ MODEL_NAME=us.anthropic.claude-sonnet-4-5-20250929-v1:0
 ```
 
 **.env (Anthropic API):**
+
 ```bash
 MODEL_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
@@ -224,6 +258,7 @@ MODEL_NAME=claude-sonnet-4-5-20250929
 ```
 
 **Model Initialization (src/agent/model.py):**
+
 ```python
 # All imports at top level (no conditional imports)
 from typing import Any
@@ -253,7 +288,7 @@ elif MODEL_PROVIDER == "anthropic":
     model = CachingAnthropicClient(base_model)
 ```
 
----
+______________________________________________________________________
 
 ## Usage
 
@@ -274,21 +309,23 @@ poetry run reviewcerberus --repo-path /path/to/repo
 poetry run reviewcerberus --instructions guidelines.md
 ```
 
----
+______________________________________________________________________
 
 ## Common Pitfalls
 
 ### ❌ Don't
+
 - Add source_branch parameter back
 - Mock git in tests
-- Put error handling or logging in _impl functions
-- Add verbose parameters to _impl functions
+- Put error handling or logging in \_impl functions
+- Add verbose parameters to \_impl functions
 
 ### ✅ Do
-- Keep business logic in _impl (pure functions)
+
+- Keep business logic in \_impl (pure functions)
 - Log from @tool wrappers (using print)
 - Use real git operations
-- Let _impl raise exceptions
+- Let \_impl raise exceptions
 - Keep it simple
 - Run `make lint` before committing
 - Add type annotations to all new functions

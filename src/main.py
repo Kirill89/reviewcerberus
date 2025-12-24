@@ -146,7 +146,7 @@ def main() -> None:
     )
 
     print()
-    Path(output_file).write_text(review_content.strip() + "\n")
+    Path(output_file).write_text(review_content)
     print(f"✓ Review completed and saved to: {output_file}")
 
     if token_usage:

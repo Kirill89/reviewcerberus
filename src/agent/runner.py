@@ -1,9 +1,38 @@
 from typing import Any
 
+import mdformat
+
 from ..config import RECURSION_LIMIT
 from .agent import agent
 from .progress_callback_handler import ProgressCallbackHandler
 from .schema import Context
+
+
+def _format_review_content(raw_content: str) -> str:
+    """Format and extract review content from AI response.
+
+    Formats the markdown content with consistent styling (80-char wrap, numbered
+    lists, GitHub Flavored Markdown) and extracts the review starting from the
+    first markdown header, removing any meta-commentary.
+
+    Args:
+        raw_content: The raw content string from the AI response
+
+    Returns:
+        Formatted markdown content starting from the first header
+    """
+    formatted = mdformat.text(
+        raw_content,
+        options={
+            "number": True,
+            "wrap": 80,
+        },
+        extensions={
+            "gfm",
+        },
+    )
+
+    return "#" + formatted.split("#", 1)[1]
 
 
 def run_review(
@@ -50,18 +79,9 @@ def run_review(
             else str(final_message)
         )
 
-        # Strip meta-commentary before the actual review
-        # Find the first line starting with '#' (markdown header)
-        lines = raw_content.split("\n")
-        start_index = 0
-        for i, line in enumerate(lines):
-            if line.strip().startswith("#"):
-                start_index = i
-                break
-        content = "\n".join(lines[start_index:])
+        content = _format_review_content(raw_content)
 
         # Aggregate token usage across all AI messages
-        total_input = 0
         total_output = 0
         cumulative_total = 0
 
