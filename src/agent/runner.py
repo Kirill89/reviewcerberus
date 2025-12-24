@@ -3,7 +3,7 @@ from typing import Any
 import mdformat
 
 from ..config import RECURSION_LIMIT
-from .agent import agent
+from .agent import create_review_agent
 from .progress_callback_handler import ProgressCallbackHandler
 from .schema import Context
 
@@ -40,6 +40,9 @@ def run_review(
     show_progress: bool = True,
     additional_instructions: str | None = None,
 ) -> tuple[str, dict | None]:
+    # Create agent with additional instructions in system prompt for better effectiveness
+    agent = create_review_agent(additional_instructions)
+
     callbacks = []
     if show_progress:
         callbacks.append(ProgressCallbackHandler())
@@ -52,17 +55,12 @@ def run_review(
         "recursion_limit": RECURSION_LIMIT,
     }
 
-    # Build the review request message
-    message_content = "Please review the code changes."
-    if additional_instructions:
-        message_content += f"\n\nAdditional instructions:\n{additional_instructions}"
-
     response = agent.invoke(
         {
             "messages": [
                 {
                     "role": "user",
-                    "content": message_content,
+                    "content": "Please review the code changes.",
                 }
             ],
         },

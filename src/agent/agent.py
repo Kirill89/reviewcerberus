@@ -15,17 +15,46 @@ from .tools import (
     search_in_files,
 )
 
-agent: Any = create_agent(
-    model=model,
-    system_prompt=SYSTEM_PROMPT,
-    tools=[
-        changed_files,
-        get_commit_messages,
-        diff_file,
-        read_file_part,
-        search_in_files,
-        list_files,
-    ],
-    context_schema=Context,
-    checkpointer=checkpointer,
-)
+
+def create_review_agent(additional_instructions: str | None = None) -> Any:
+    """Create an agent with optional additional instructions in the system prompt.
+
+    The agent automatically manages context when reaching 100k tokens by injecting
+    a summarization request into its own loop. The agent generates a summary of its
+    findings, then the middleware cleans up old messages, keeping only the initial
+    request and the summary. This frees up ~95k tokens for continued analysis while
+    avoiding tool message serialization issues.
+
+    Args:
+        additional_instructions: Optional additional review guidelines to append
+                                to the system prompt
+
+    Returns:
+        Configured agent instance with automatic in-loop summarization
+    """
+    system_prompt = SYSTEM_PROMPT
+    if additional_instructions:
+        system_prompt = (
+            f"{SYSTEM_PROMPT}\n\n"
+            f"## Additional Review Guidelines\n\n"
+            f"{additional_instructions}"
+        )
+
+    return create_agent(
+        model=model,
+        system_prompt=system_prompt,
+        tools=[
+            changed_files,
+            get_commit_messages,
+            diff_file,
+            read_file_part,
+            search_in_files,
+            list_files,
+        ],
+        context_schema=Context,
+        checkpointer=checkpointer,
+    )
+
+
+# Default agent without additional instructions
+agent: Any = create_review_agent()
