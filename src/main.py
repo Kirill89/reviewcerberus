@@ -49,6 +49,12 @@ def parse_arguments() -> argparse.Namespace:
         "--instructions",
         help="Path to markdown file with additional instructions for the reviewer",
     )
+    parser.add_argument(
+        "--mode",
+        choices=["full", "summary"],
+        default="full",
+        help="Review mode: full (comprehensive review) or summary (high-level overview)",
+    )
     return parser.parse_args()
 
 
@@ -151,7 +157,7 @@ def main() -> None:
             print(f"Warning: Could not read instructions file: {e}", file=sys.stderr)
 
     review_content, token_usage = run_review(
-        context, additional_instructions=additional_instructions
+        context, mode=args.mode, additional_instructions=additional_instructions
     )
 
     print()

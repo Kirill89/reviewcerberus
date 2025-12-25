@@ -4,9 +4,9 @@ from langchain.agents import create_agent
 
 from .checkpointer import checkpointer
 from .model import model
+from .prompts import get_prompt
 from .schema import Context
 from .summarizing_middleware import SummarizingMiddleware
-from .system import SYSTEM_PROMPT
 from .tools import (
     changed_files,
     diff_file,
@@ -17,21 +17,24 @@ from .tools import (
 )
 
 
-def create_review_agent(additional_instructions: str | None = None) -> Any:
-    """Create an agent with optional additional instructions in the system prompt.
+def create_review_agent(
+    mode: str = "full", additional_instructions: str | None = None
+) -> Any:
+    """Create an agent with optional mode and additional instructions.
 
     Args:
+        mode: Review mode ("full" or "summary")
         additional_instructions: Optional additional review guidelines to append
                                 to the system prompt
 
     Returns:
         Configured agent instance with automatic in-loop summarization
     """
-    system_prompt = SYSTEM_PROMPT
+    system_prompt = get_prompt(mode)
 
     if additional_instructions:
         system_prompt = (
-            f"{SYSTEM_PROMPT}\n\n"
+            f"{system_prompt}\n\n"
             f"## Additional Review Guidelines\n\n"
             f"{additional_instructions}"
         )
