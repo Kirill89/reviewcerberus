@@ -39,7 +39,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--target-branch",
         default="main",
-        help="Target branch to compare against (default: main)",
+        help="Target branch or commit hash to compare against (default: main)",
     )
     parser.add_argument(
         "--output",

@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    env:
+      # Dummy credentials for config validation during test collection
+      MODEL_PROVIDER: bedrock
+      AWS_ACCESS_KEY_ID: dummy_key
+      AWS_SECRET_ACCESS_KEY: dummy_secret
+      AWS_REGION_NAME: us-east-1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install dependencies
+        run: poetry install
+      - name: Run lint
+        run: make lint
+      - name: Run tests (excluding integration)
+        run: poetry run pytest -v --ignore=tests/test_integration.py

@@ -3,8 +3,8 @@
 ## Overview
 
 A minimalist CLI tool that performs automated code reviews using AI models. The
-tool analyzes Git branch differences and generates comprehensive review reports
-in Markdown format.
+tool analyzes Git branch differences and generates review reports in Markdown
+format. Supports both comprehensive full reviews and high-level summaries.
 
 ## Core Features
 
@@ -12,8 +12,12 @@ in Markdown format.
 
 Simple command-line interface with sensible defaults:
 
-- **Target Branch**: `main` (default) or user-specified
+- **Review Mode**: `full` (default) or `summary`
+- **Target Branch**: `main` (default) or user-specified (supports branch names
+  and commit hashes)
 - **Output File**: `review_{current_branch_name}.md` (default) or user-specified
+- **Additional Instructions**: Optional markdown file with custom review
+  guidelines
 
 The tool always reviews the currently checked out branch against the target
 branch.
@@ -89,6 +93,8 @@ at initialization, eliminating the need for a separate tool call.
 
 ## Output Format
 
+### Full Review Mode
+
 Markdown file containing:
 
 - Review summary
@@ -97,6 +103,17 @@ Markdown file containing:
 - Security concerns
 - Performance suggestions
 - Best practice recommendations
+
+### Summary Mode
+
+Markdown file containing:
+
+- High-level overview (2-4 sentences)
+- Task-style description of changes
+- Logical grouping of changes by purpose
+- User impact (if applicable)
+- New components and system integration
+- Call graphs for complex interactions (if applicable)
 
 ## Technology Stack
 

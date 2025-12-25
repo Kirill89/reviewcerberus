@@ -11,12 +11,14 @@ comprehensive review reports.
 
 - **Multi-Provider Support**: Use AWS Bedrock or Anthropic API
 - **Automated Code Review**: Uses AI to analyze code changes between branches
+- **Multiple Review Modes**: Choose between comprehensive full review or
+  high-level summary
 - **Comprehensive Analysis**: Reviews logic, security, performance, code
   quality, and more
 - **Token Efficient**: Smart tools for partial file reading, diff pagination,
   and search with prompt caching
 - **Markdown Output**: Generates readable review reports
-- **Git Integration**: Works with any git repository
+- **Git Integration**: Works with any git repository and supports commit hashes
 
 ## Quick Start (Docker - Recommended)
 
@@ -49,6 +51,16 @@ docker run --rm -it -v $(pwd):/repo \
   -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
   kirill89/reviewcerberus-cli:latest \
   --repo-path /repo --target-branch develop --output /repo/review.md
+```
+
+**Generate a summary instead of full review:**
+
+```bash
+docker run --rm -it -v $(pwd):/repo \
+  -e MODEL_PROVIDER=anthropic \
+  -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
+  kirill89/reviewcerberus-cli:latest \
+  --repo-path /repo --mode summary --output /repo/summary.md
 ```
 
 ## Installation (Development)
@@ -102,12 +114,39 @@ Review current branch against `main`:
 poetry run reviewcerberus
 ```
 
+### Review Modes
+
+Choose between different review modes:
+
+**Full Review (default)** - Comprehensive code review with detailed analysis:
+
+```bash
+poetry run reviewcerberus --mode full
+```
+
+**Summary Mode** - High-level overview of changes:
+
+```bash
+poetry run reviewcerberus --mode summary
+```
+
+The summary mode provides a concise overview including:
+
+- Brief description of changes
+- Task-style description of what changed and why
+- Logical grouping of changes
+- User impact (if applicable)
+- New components and system integration
+- Call graphs for complex interactions
+
 ### Custom Target Branch
 
-Review against a different branch:
+Review against a different branch or commit hash:
 
 ```bash
 poetry run reviewcerberus --target-branch develop
+# or use a commit hash
+poetry run reviewcerberus --target-branch abc123def
 ```
 
 ### Custom Output File
@@ -154,7 +193,13 @@ Example `review-guidelines.md`:
 ### Full Example
 
 ```bash
-poetry run reviewcerberus --target-branch main --output review.md --instructions guidelines.md
+poetry run reviewcerberus --mode full --target-branch main --output review.md --instructions guidelines.md
+```
+
+Generate a quick summary instead:
+
+```bash
+poetry run reviewcerberus --mode summary --target-branch main --output summary.md
 ```
 
 ## How It Works
@@ -229,6 +274,8 @@ The AI reviews code across multiple dimensions:
 
 ## Output Format
 
+### Full Review Mode
+
 Generated review includes:
 
 1. **Summary**: Overview of changes
@@ -242,6 +289,17 @@ Generated review includes:
    - Impact explanation
    - Suggested fix with code examples
 5. **Recommendations**: General improvement suggestions
+
+### Summary Mode
+
+Generated summary includes:
+
+1. **Overview**: Concise 2-4 sentence summary
+2. **Task Description**: What problem is solved and scope of changes
+3. **Logical Change Groups**: Changes organized by purpose
+4. **User Impact**: How changes affect end users (if applicable)
+5. **New Components**: New additions and system integration
+6. **Call Graph**: Interaction diagrams for complex workflows (if applicable)
 
 ## Development
 
@@ -304,11 +362,15 @@ src/
     ├── agent.py                     # Agent configuration
     ├── model.py                     # Model setup (Bedrock/Anthropic)
     ├── caching_bedrock_client.py    # Bedrock caching wrapper
-    ├── system.py                    # Review prompt
+    ├── prompts/                     # Review prompts
+    │   ├── full_review.md           # Full review mode prompt
+    │   ├── summary_mode.md          # Summary mode prompt
+    │   └── context_summary.md       # Context compaction prompt
     ├── schema.py                    # Data models
     ├── runner.py                    # Review execution
     ├── progress_callback_handler.py # Progress display
     └── tools/                       # Review tools (6 total)
+        ├── helpers.py               # Shared utilities
         ├── changed_files.py
         ├── read_file_part.py
         ├── diff_file.py
@@ -368,9 +430,15 @@ MAX_OUTPUT_TOKENS=8192
 RECURSION_LIMIT=200
 ```
 
-### Review Prompt
+### Review Prompts
 
-Customize review criteria in `src/agent/system.py`.
+Review prompts are stored as markdown files in `src/agent/prompts/`:
+
+- `full_review.md` - Comprehensive code review prompt
+- `summary_mode.md` - High-level summary prompt
+- `context_summary.md` - Context compaction for large PRs
+
+Customize these files to adjust review criteria and output format.
 
 ## Requirements
 

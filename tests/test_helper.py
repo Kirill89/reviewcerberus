@@ -19,7 +19,7 @@ def create_test_repo() -> Generator[Path, None, None]:
         )
 
     try:
-        git("init")
+        git("init", "-b", "main")
         git("config", "user.name", "Test User")
         git("config", "user.email", "test@example.com")
 
