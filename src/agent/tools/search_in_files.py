@@ -6,6 +6,7 @@ from langgraph.prebuilt import ToolRuntime
 from pydantic import BaseModel
 
 from ..schema import Context
+from .helpers import truncate_line
 
 
 class SearchMatch(BaseModel):
@@ -13,13 +14,6 @@ class SearchMatch(BaseModel):
     line_number: int
     line_content: str
     match_context: str
-
-
-def _truncate_line(line: str, max_length: int) -> str:
-    """Truncate line if it exceeds max length."""
-    if len(line) <= max_length:
-        return line
-    return line[:max_length] + " [truncated due to line size]"
 
 
 def _search_in_files_impl(
@@ -65,12 +59,12 @@ def _search_in_files_impl(
                                 file_path=current_file,
                                 line_number=current_line_num,
                                 line_content=(
-                                    _truncate_line(current_content[0], max_line_length)
+                                    truncate_line(current_content[0], max_line_length)
                                     if current_content
                                     else ""
                                 ),
                                 match_context="\n".join(
-                                    _truncate_line(line, max_line_length)
+                                    truncate_line(line, max_line_length)
                                     for line in current_content
                                 ),
                             )
@@ -91,12 +85,12 @@ def _search_in_files_impl(
                 file_path=current_file,
                 line_number=current_line_num,
                 line_content=(
-                    _truncate_line(current_content[0], max_line_length)
+                    truncate_line(current_content[0], max_line_length)
                     if current_content
                     else ""
                 ),
                 match_context="\n".join(
-                    _truncate_line(line, max_line_length) for line in current_content
+                    truncate_line(line, max_line_length) for line in current_content
                 ),
             )
         )

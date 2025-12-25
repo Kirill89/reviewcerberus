@@ -5,7 +5,7 @@ from tests.test_helper import create_test_repo
 def test_read_file_part() -> None:
     with create_test_repo() as repo_path:
         result = _read_file_part_impl(
-            str(repo_path), "file1.py", start_line=1, end_line=2
+            str(repo_path), "file1.py", start_line=1, num_lines=2
         )
 
         assert result.file_path == "file1.py"

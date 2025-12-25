@@ -16,8 +16,11 @@ def test_full_review_workflow() -> None:
         )
 
         # Run review without progress output for cleaner test logs
+        # Use additional instructions to keep the review very brief for faster testing
         review_content, token_usage = run_review(
-            context, show_progress=False, additional_instructions=None
+            context,
+            show_progress=False,
+            additional_instructions="Keep this review extremely brief (max 3-4 sentences total). Only mention the most critical findings.",
         )
 
         # Verify review content
