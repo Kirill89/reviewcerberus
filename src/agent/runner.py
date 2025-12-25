@@ -37,11 +37,14 @@ def _format_review_content(raw_content: str) -> str:
 
 def run_review(
     context: Context,
+    mode: str = "full",
     show_progress: bool = True,
     additional_instructions: str | None = None,
 ) -> tuple[str, dict | None]:
     # Create agent with additional instructions in system prompt for better effectiveness
-    agent = create_review_agent(additional_instructions)
+    agent = create_review_agent(
+        mode=mode, additional_instructions=additional_instructions
+    )
 
     callbacks = []
     if show_progress:

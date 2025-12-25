@@ -11,18 +11,18 @@ from langgraph.runtime import Runtime
 from langgraph.typing import ContextT, StateT
 
 from ..config import CONTEXT_COMPACT_THRESHOLD
-from .summary_prompt import REVIEW_SUMMARY_PROMPT
+from .prompts import get_prompt
 
 
 class SummarizingMiddleware(AgentMiddleware):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.summary_requested = False
 
     def before_model(
         self, state: StateT, runtime: Runtime[ContextT]
     ) -> dict[str, Any] | None:
-        messages = state["messages"]
+        messages = state["messages"]  # type: ignore[index]
         total_tokens = count_tokens_approximately(messages)
 
         if total_tokens > CONTEXT_COMPACT_THRESHOLD:
@@ -34,7 +34,7 @@ class SummarizingMiddleware(AgentMiddleware):
 
             return {
                 "messages": [
-                    HumanMessage(content=REVIEW_SUMMARY_PROMPT),
+                    HumanMessage(content=get_prompt("context_summary")),
                 ],
             }
 
@@ -47,7 +47,7 @@ class SummarizingMiddleware(AgentMiddleware):
             return None
 
         self.summary_requested = False
-        messages = state["messages"]
+        messages = state["messages"]  # type: ignore[index]
         remove_messages = []
 
         for message in messages[1:]:

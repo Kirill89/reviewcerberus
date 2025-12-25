@@ -7,10 +7,10 @@ lint:
 	poetry run mypy src tests
 	poetry run isort --check-only src tests
 	poetry run black --check src tests
-	poetry run mdformat --check --compact-tables --wrap 80 --number README.md DOCKER.md spec/*.md
+	poetry run mdformat --check --compact-tables --wrap 80 --number README.md DOCKER.md spec/*.md src/agent/prompts/*.md
 
 format:
-	poetry run mdformat --compact-tables --wrap 80 --number README.md DOCKER.md spec/*.md
+	poetry run mdformat --compact-tables --wrap 80 --number README.md DOCKER.md spec/*.md src/agent/prompts/*.md
 	poetry run isort src tests
 	poetry run black src tests
 
