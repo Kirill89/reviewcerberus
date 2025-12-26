@@ -207,6 +207,25 @@ ANTHROPIC_API_KEY=sk-ant-your-api-key-here
 MODEL_NAME=claude-sonnet-4-5-20250929  # optional
 ```
 
+### Ollama (if MODEL_PROVIDER=ollama)
+
+```bash
+MODEL_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434  # optional, default
+MODEL_NAME=devstral-small-2:24b-cloud   # optional
+```
+
+**Docker example with Ollama:**
+
+```bash
+# Assumes Ollama running on host machine
+docker run --rm -it -v $(pwd):/repo \
+  -e MODEL_PROVIDER=ollama \
+  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  kirill89/reviewcerberus-cli:latest \
+  --repo-path /repo --output /repo/review.md
+```
+
 ### Optional Settings
 
 ```bash

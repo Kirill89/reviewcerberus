@@ -39,9 +39,11 @@ branch.
 
 ### AI Model Integration
 
-- Primary support: AWS Bedrock models
-- Architecture: Designed for easy extensibility to support other AI providers
-  with minimal code changes
+- **Multi-provider support:**
+  - AWS Bedrock (default)
+  - Anthropic API
+  - Ollama (local models)
+- Factory pattern architecture: Each provider in separate file, easy to extend
 - Framework: LangChain for AI orchestration
 
 ## LangChain Tools
@@ -76,8 +78,8 @@ at initialization, eliminating the need for a separate tool call.
 
 ### Extensibility
 
-- Abstract AI provider interface
-- Easy to add new model providers
+- Factory pattern for AI providers (function-based, matching tools pattern)
+- Easy to add new model providers (one file + registry entry)
 - Pluggable tool system
 
 ## Architecture
@@ -86,7 +88,8 @@ at initialization, eliminating the need for a separate tool call.
 
 1. **CLI Parser**: Handle command-line arguments and defaults
 2. **Git Interface**: Interact with Git to get diffs, file lists, and content
-3. **AI Provider Layer**: Abstract interface for AI models (Bedrock initially)
+3. **AI Provider Layer**: Factory pattern with support for Bedrock, Anthropic,
+   and Ollama
 4. **LangChain Agent**: Orchestrate tools and AI to perform reviews
 5. **Report Generator**: Format and write Markdown review reports
 
@@ -149,12 +152,15 @@ Markdown file containing:
 
 ## Technology Stack
 
-- **Language**: Python
-- **AI Framework**: LangChain
-- **AI Provider**: AWS Bedrock (with extensible provider pattern)
-- **VCS**: Git (via subprocess or GitPython)
-- **CLI**: argparse or click
-- **Output**: Markdown
+- **Language**: Python 3.11+
+- **AI Framework**: LangChain + LangGraph
+- **AI Providers**:
+  - AWS Bedrock (langchain-aws 1.1.0, boto3 1.42.15)
+  - Anthropic API (langchain-anthropic 1.3.0)
+  - Ollama (langchain-ollama 1.0.1)
+- **VCS**: Git (via subprocess)
+- **CLI**: argparse
+- **Output**: Markdown (with mdformat for consistent formatting)
 
 ## Success Criteria
 

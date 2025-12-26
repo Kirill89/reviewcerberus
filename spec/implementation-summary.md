@@ -10,7 +10,7 @@ principles.
 
 - Three specialized review modes: full, summary, and spaghetti (code quality)
 - Auto-generated executive summaries for all reviews
-- Multi-provider support (AWS Bedrock and Anthropic API)
+- Multi-provider support (AWS Bedrock, Anthropic API, and Ollama)
 - Automatic context management for large PRs
 
 **Tech Stack:**
@@ -20,6 +20,7 @@ principles.
 - **Multi-provider support:**
   - AWS Bedrock Claude (boto3 1.42.15, langchain-aws 1.1.0)
   - Anthropic API (langchain-anthropic 1.3.0)
+  - Ollama (langchain-ollama 1.0.1)
 - Git (subprocess)
 - pytest
 
@@ -36,17 +37,25 @@ ______________________________________________________________________
 
 ### 1. Multi-Provider Architecture
 
-Support both AWS Bedrock and Anthropic API as alternative providers (not
-simultaneous). User selects via `MODEL_PROVIDER` env variable. Provider-specific
-initialization is conditional to avoid unnecessary dependencies.
+Support for AWS Bedrock, Anthropic API, and Ollama as alternative providers (not
+simultaneous). User selects via `MODEL_PROVIDER` env variable.
+
+**Factory Pattern Implementation:**
+
+- Each provider in separate file under `src/agent/providers/`
+- Function-based factories (matching tools pattern)
+- Registry-based dispatch in `providers/__init__.py`
+- Clean separation of provider-specific logic
 
 **Key features:**
 
 - Default to Bedrock for backward compatibility
-- Prompt caching supported for both providers (Bedrock: explicit cache points,
-  Anthropic: automatic caching)
+- Prompt caching supported:
+  - Bedrock: explicit cache points via `CachingBedrockClient`
+  - Anthropic: automatic caching via SDK
+  - Ollama: no caching (local inference)
 - Clear error messages for missing credentials based on selected provider
-- All imports at top level (no conditional imports)
+- Easy to extend with new providers (add file + registry entry)
 
 ### 2. Simplified Branch Model
 
@@ -112,11 +121,11 @@ reviews:
 **Architecture:**
 
 - `SummarizingMiddleware` monitors token count in agent loop
-- Triggers at `CONTEXT_COMPACT_THRESHOLD` (default: 140k tokens)
+- Triggers at `CONTEXT_COMPACT_THRESHOLD` (provider-specific defaults)
 - Injects summarization request into conversation
 - Agent generates summary of findings so far
 - Middleware compacts history: keeps only [initial request + summary]
-- Agent continues review with ~95k tokens freed
+- Agent continues review with freed tokens
 
 **Key Features:**
 
@@ -124,6 +133,7 @@ reviews:
   - Files analyzed and findings discovered (by severity)
   - Files remaining to review
   - Investigation threads and next steps
+- Default: 140k tokens for all providers
 - Configurable threshold via `CONTEXT_COMPACT_THRESHOLD` env var
 - Transparent logging when summarization triggers
 
@@ -204,8 +214,13 @@ reviewcerberus/
 │   ├── main.py                          # CLI entry point
 │   └── agent/
 │       ├── agent.py                     # Agent setup
-│       ├── model.py                     # Model setup (multi-provider)
-│       ├── caching_bedrock_client.py    # Bedrock caching wrapper
+│       ├── model.py                     # Model setup (factory)
+│       ├── providers/                   # Model providers (factory pattern)
+│       │   ├── __init__.py              # Factory + registry
+│       │   ├── bedrock.py               # Bedrock provider
+│       │   ├── bedrock_caching.py       # Bedrock caching wrapper
+│       │   ├── anthropic.py             # Anthropic provider
+│       │   └── ollama.py                # Ollama provider
 │       ├── prompts/                     # Review prompts
 │       │   ├── __init__.py              # Prompt loader
 │       │   ├── full_review.md           # Full review mode prompt
@@ -302,6 +317,18 @@ ______________________________________________________________________
 
 ## Guidelines
 
+### Adding New Providers
+
+1. Create `src/agent/providers/provider_name.py`
+2. Implement `create_provider_model(model_name: str, max_tokens: int) -> Any`
+3. Add to `PROVIDER_REGISTRY` in `providers/__init__.py`
+4. Update `src/config.py`:
+   - Add provider-specific env vars
+   - Add default MODEL_NAME for provider
+   - Add validation logic
+5. Update `.env.example` with configuration example
+6. Update documentation (README.md, DOCKERHUB.md, spec files)
+
 ### Adding New Tools
 
 1. Implement `_tool_name_impl` (business logic - pure, no logging)
@@ -359,36 +386,22 @@ ANTHROPIC_API_KEY=sk-ant-...
 MODEL_NAME=claude-sonnet-4-5-20250929
 ```
 
-**Model Initialization (src/agent/model.py):**
+**.env (Ollama):**
 
-```python
-# All imports at top level (no conditional imports)
-from typing import Any
-import boto3
-from botocore.config import Config
-from langchain.chat_models import init_chat_model
-from langchain_anthropic import ChatAnthropic
-
-# Provider-specific initialization
-if MODEL_PROVIDER == "bedrock":
-    bedrock_client = boto3.client(...)
-    caching_client = CachingBedrockClient(bedrock_client)
-    model = init_chat_model(
-        MODEL_NAME,
-        client=caching_client,
-        model_provider="bedrock_converse",
-        temperature=0.0,
-        max_tokens=MAX_OUTPUT_TOKENS,
-    )
-elif MODEL_PROVIDER == "anthropic":
-    # ChatAnthropic automatically uses ANTHROPIC_API_KEY environment variable
-    base_model = ChatAnthropic(
-        model_name=MODEL_NAME,
-        temperature=0.0,
-        max_tokens_to_sample=MAX_OUTPUT_TOKENS,
-    )
-    model = CachingAnthropicClient(base_model)
+```bash
+MODEL_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434      # optional, default
+MODEL_NAME=devstral-small-2:24b-cloud       # optional, default
 ```
+
+**Model Initialization:**
+
+- Factory pattern: `src/agent/model.py` uses `create_model()` from providers
+- Registry-based: Each provider registered in `PROVIDER_REGISTRY` dict
+- Provider files: `providers/bedrock.py`, `providers/anthropic.py`,
+  `providers/ollama.py`
+- Each provider exports `create_<provider>_model(model_name, max_tokens)`
+  function
 
 ______________________________________________________________________
 

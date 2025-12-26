@@ -19,13 +19,20 @@ AWS_REGION_NAME = os.getenv("AWS_REGION_NAME", "")
 _anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_API_KEY = SecretStr(_anthropic_key)
 
+# Ollama configuration (required only if MODEL_PROVIDER=ollama)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
 # Model configuration
 MODEL_NAME = os.getenv(
     "MODEL_NAME",
     (
         "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
         if MODEL_PROVIDER == "bedrock"
-        else "claude-sonnet-4-5-20250929"
+        else (
+            "claude-sonnet-4-5-20250929"
+            if MODEL_PROVIDER == "anthropic"
+            else "devstral-small-2:24b-cloud"
+        )  # ollama default
     ),
 )
 MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "8192"))
@@ -44,7 +51,11 @@ if MODEL_PROVIDER == "bedrock":
 elif MODEL_PROVIDER == "anthropic":
     if not _anthropic_key:
         raise ValueError("ANTHROPIC_API_KEY is required when MODEL_PROVIDER=anthropic")
+elif MODEL_PROVIDER == "ollama":
+    # Ollama has no required credentials, base_url has default
+    pass
 else:
     raise ValueError(
-        f"Invalid MODEL_PROVIDER: {MODEL_PROVIDER}. Must be 'bedrock' or 'anthropic'"
+        f"Invalid MODEL_PROVIDER: {MODEL_PROVIDER}. "
+        f"Must be 'bedrock', 'anthropic', or 'ollama'"
     )
