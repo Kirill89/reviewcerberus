@@ -6,6 +6,13 @@ AI-powered code review tool that analyzes Git branch differences and generates
 comprehensive review reports. Built with minimalism and token efficiency as core
 principles.
 
+**Key Features:**
+
+- Three specialized review modes: full, summary, and spaghetti (code quality)
+- Auto-generated executive summaries for all reviews
+- Multi-provider support (AWS Bedrock and Anthropic API)
+- Automatic context management for large PRs
+
 **Tech Stack:**
 
 - Python 3.11+
@@ -137,6 +144,55 @@ code/generated files:
 - Without truncation: 438k tokens from 25 matches (context explosion)
 - With truncation: 1.5k tokens from 25 matches (295x reduction)
 
+### 11. Review Modes
+
+Three specialized review modes available:
+
+**Full Mode (default):**
+
+- Comprehensive code review with detailed analysis
+- Checks logic, security, performance, code quality, side effects, testing
+- Produces prioritized issue list with severity levels
+
+**Summary Mode:**
+
+- High-level overview of changes
+- Task-style description and logical grouping
+- User impact analysis and system integration overview
+
+**Spaghetti Mode:**
+
+- Code quality and redundancy detection
+- Actively searches codebase for similar patterns using `search_in_files`
+- Detects: duplication, missed reuse opportunities, redundant patterns, dead
+  code, over-engineering
+- Suggests: library usage, abstraction opportunities, refactoring
+
+### 12. Executive Summary
+
+All reviews automatically include an AI-generated executive summary prepended to
+the top:
+
+**Architecture:**
+
+- Post-processing step after main review generation
+- Simple LLM call (fast, no agent overhead)
+- Uses conversational prompt validated through user testing
+- Formatted with `_format_review_content()` for uniform markdown
+
+**Summary Contains:**
+
+- Issue counts by severity (with emojis: 🔴 CRITICAL, 🟠 HIGH, etc.)
+- Top 3-5 most critical issues with locations
+- Brief recommendation on priorities
+- Concise (1 page max, ~300-500 words)
+
+**Configuration:**
+
+- Enabled by default for all modes
+- Disable with `--no-summary` flag for faster reviews
+- Token usage tracked and merged with main review
+
 ______________________________________________________________________
 
 ## Project Structure
@@ -150,9 +206,15 @@ reviewcerberus/
 │       ├── agent.py                     # Agent setup
 │       ├── model.py                     # Model setup (multi-provider)
 │       ├── caching_bedrock_client.py    # Bedrock caching wrapper
-│       ├── system.py                    # Review prompt
+│       ├── prompts/                     # Review prompts
+│       │   ├── __init__.py              # Prompt loader
+│       │   ├── full_review.md           # Full review mode prompt
+│       │   ├── summary_mode.md          # Summary mode prompt
+│       │   ├── spaghetti_code_detection.md  # Spaghetti mode prompt
+│       │   ├── executive_summary.md     # Executive summary prompt
+│       │   └── context_summary.md       # Context compaction prompt
 │       ├── schema.py                    # Context model
-│       ├── runner.py                    # Agent runner
+│       ├── runner.py                    # Agent runner + summarize_review()
 │       ├── progress_callback_handler.py # Progress display
 │       └── tools/                       # 6 review tools
 │
@@ -333,8 +395,13 @@ ______________________________________________________________________
 ## Usage
 
 ```bash
-# Basic usage
+# Basic usage (full review with executive summary)
 poetry run reviewcerberus
+
+# Different review modes
+poetry run reviewcerberus --mode full       # Comprehensive review
+poetry run reviewcerberus --mode summary    # High-level overview
+poetry run reviewcerberus --mode spaghetti  # Code quality/redundancy
 
 # Specify target branch
 poetry run reviewcerberus --target-branch develop
@@ -347,6 +414,9 @@ poetry run reviewcerberus --repo-path /path/to/repo
 
 # Additional review instructions
 poetry run reviewcerberus --instructions guidelines.md
+
+# Skip executive summary (faster)
+poetry run reviewcerberus --no-summary
 ```
 
 ______________________________________________________________________

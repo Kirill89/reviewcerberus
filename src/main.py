@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .agent.runner import run_review
+from .agent.runner import run_review, summarize_review
 from .agent.schema import Context
 from .agent.tools.changed_files import FileChange, _changed_files_impl
 from .config import MODEL_NAME, MODEL_PROVIDER
@@ -54,6 +54,11 @@ def parse_arguments() -> argparse.Namespace:
         choices=["full", "summary", "spaghetti"],
         default="full",
         help="Review mode: full (comprehensive review), summary (high-level overview), or spaghetti (code quality and redundancy detection)",
+    )
+    parser.add_argument(
+        "--no-summary",
+        action="store_true",
+        help="Skip executive summary generation (faster)",
     )
     return parser.parse_args()
 
@@ -159,6 +164,17 @@ def main() -> None:
     review_content, token_usage = run_review(
         context, mode=args.mode, additional_instructions=additional_instructions
     )
+
+    # Add executive summary if requested
+    if not args.no_summary:
+        review_content, summary_usage = summarize_review(review_content)
+        # Merge token usage
+        if token_usage and summary_usage:
+            token_usage["total_input_tokens"] += summary_usage["input_tokens"]
+            token_usage["output_tokens"] += summary_usage["output_tokens"]
+            token_usage["total_tokens"] = (
+                token_usage["total_input_tokens"] + token_usage["output_tokens"]
+            )
 
     print()
     Path(output_file).write_text(review_content)

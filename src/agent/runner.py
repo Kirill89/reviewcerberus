@@ -4,7 +4,9 @@ import mdformat
 
 from ..config import RECURSION_LIMIT
 from .agent import create_review_agent
+from .model import model
 from .progress_callback_handler import ProgressCallbackHandler
+from .prompts import get_prompt
 from .schema import Context
 
 
@@ -33,6 +35,46 @@ def _format_review_content(raw_content: str) -> str:
     )
 
     return "#" + formatted.split("#", 1)[1]
+
+
+def summarize_review(
+    review_content: str, show_progress: bool = True
+) -> tuple[str, dict | None]:
+    """Generate an executive summary of a code review and prepend it.
+
+    Args:
+        review_content: The full review markdown content
+        show_progress: Whether to show progress messages
+
+    Returns:
+        Tuple of (content with summary prepended, token_usage dict)
+    """
+    if show_progress:
+        print("📊 Generating executive summary...")
+
+    prompt = get_prompt("executive_summary")
+
+    # Simple LLM call (not an agent)
+    response = model.invoke(
+        [{"role": "user", "content": f"{prompt}\n\n---\n\n{review_content}"}]
+    )
+
+    # Prepend summary to full review
+    final_content = f"{response.content}\n\n---\n\n# Full Review\n\n{review_content}"
+
+    # Format the entire combined content for uniform markdown
+    final_content = _format_review_content(final_content)
+
+    # Track token usage
+    token_usage = None
+
+    if hasattr(response, "usage_metadata") and response.usage_metadata:
+        token_usage = {
+            "input_tokens": response.usage_metadata.get("input_tokens", 0),
+            "output_tokens": response.usage_metadata.get("output_tokens", 0),
+        }
+
+    return final_content, token_usage
 
 
 def run_review(
