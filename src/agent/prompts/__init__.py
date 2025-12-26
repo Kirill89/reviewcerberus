@@ -9,6 +9,8 @@ def get_prompt(name: str) -> str:
     Maps mode names to filenames:
     - "full" → full_review.md
     - "summary" → summary_mode.md
+    - "spaghetti" → spaghetti_code_detection.md
+    - "security" → security_review.md
 
     For other prompts, uses direct names:
     - "context_summary" → context_summary.md
@@ -27,6 +29,7 @@ def get_prompt(name: str) -> str:
         "full": "full_review.md",
         "summary": "summary_mode.md",
         "spaghetti": "spaghetti_code_detection.md",
+        "security": "security_review.md",
     }
 
     # Check if it's a mode name

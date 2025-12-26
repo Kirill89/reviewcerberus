@@ -49,6 +49,7 @@ poetry run reviewcerberus
 poetry run reviewcerberus --mode full       # Detailed analysis
 poetry run reviewcerberus --mode summary    # High-level overview
 poetry run reviewcerberus --mode spaghetti  # Code quality focus
+poetry run reviewcerberus --mode security   # Security analysis (OWASP Top 10)
 
 # Custom target branch
 poetry run reviewcerberus --target-branch develop
@@ -116,6 +117,22 @@ Focuses on code maintainability:
 - **Abstraction**: Opportunities for better patterns
 - **Dead Code**: Unused imports, unreachable code
 - **Over-Engineering**: Unnecessary complexity
+
+### 4. Security Mode (OWASP Top 10 Analysis)
+
+Deep security analysis with data flow tracing:
+
+- **Access Control**: Missing authorization, privilege escalation
+- **Cryptographic Failures**: Hardcoded secrets, weak encryption
+- **Injection**: Command, SQL, Path Traversal, Code Injection
+- **Authentication & Authorization**: Weak auth, session issues
+- **Security Misconfiguration**: Debug mode, verbose errors
+- **Vulnerable Components**: Outdated dependencies
+- **Logging & Monitoring**: Missing security logs
+- **SSRF**: Unvalidated URL requests
+
+**Key Feature**: The agent actively traces data flows from user input to
+dangerous sinks to confirm exploitability, not just pattern matching.
 
 ### Executive Summary (All Modes)
 

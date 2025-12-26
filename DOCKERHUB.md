@@ -16,7 +16,7 @@ docker run --rm -it -v $(pwd):/repo \
 
 ## Key Features
 
-- **Three Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti (code quality)
+- **Four Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti (code quality), Security (OWASP Top 10)
 - **Executive Summaries**: Auto-generated highlights of critical issues
 - **Multi-Provider**: AWS Bedrock or Anthropic API
 - **Smart Analysis**: Token-efficient tools with prompt caching
@@ -76,6 +76,19 @@ docker run --rm -it -v $(pwd):/repo \
 - Dead Code: Unused imports, unreachable code
 - Over-Engineering: Unnecessary complexity
 
+### Security Mode (OWASP Top 10 Analysis)
+- Access Control: Missing authorization, privilege escalation
+- Cryptographic Failures: Hardcoded secrets, weak encryption
+- Injection: Command, SQL, Path Traversal, Code Injection
+- Authentication & Authorization: Weak auth, session issues
+- Security Misconfiguration: Debug mode, verbose errors
+- Vulnerable Components: Outdated dependencies
+- Data Integrity: Insecure deserialization
+- Logging & Monitoring: Missing security logs
+- SSRF: Unvalidated URL requests
+
+**Key Feature**: Actively traces data flows from user input to dangerous sinks to confirm exploitability, not just pattern matching.
+
 ### Executive Summary (All Modes)
 Every review includes an auto-generated summary at the top:
 - Top 3-5 critical issues with locations
@@ -110,7 +123,7 @@ Disable with `--no-summary` for faster reviews.
 
 ## Command-Line Options
 
-- `--mode`: Review mode (`full`, `summary`, `spaghetti`) - default: `full`
+- `--mode`: Review mode (`full`, `summary`, `spaghetti`, `security`) - default: `full`
 - `--target-branch`: Branch to compare against - default: `main`
 - `--output`: Output file path or directory
 - `--repo-path`: Path to git repository - default: `/repo`
