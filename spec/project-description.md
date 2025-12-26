@@ -15,11 +15,12 @@ critical issues.
 
 Simple command-line interface with sensible defaults:
 
-- **Review Mode**: `full` (default), `summary`, or `spaghetti`
+- **Review Mode**: `full` (default), `summary`, `spaghetti`, or `security`
   - `full`: Comprehensive code review with detailed analysis
   - `summary`: High-level overview of changes
   - `spaghetti`: Code quality and redundancy detection (duplication, missed
     reuse opportunities, dead code, over-engineering)
+  - `security`: OWASP Top 10 security analysis with data flow tracing
 - **Target Branch**: `main` (default) or user-specified (supports branch names
   and commit hashes)
 - **Output File**: `review_{current_branch_name}.md` (default) or user-specified
@@ -149,6 +150,18 @@ Markdown file containing:
 - Abstraction opportunities (inheritance, composition, interfaces)
 - Dead/unreachable code detection
 - Over-engineering concerns
+
+### Security Review Mode
+
+Markdown file containing:
+
+- Executive security summary (auto-generated)
+- Security posture overview
+- Detailed vulnerability analysis organized by OWASP Top 10 categories
+- Data flow analysis showing source → processing → sink for each vulnerability
+- Prioritized security issues by severity (CRITICAL, HIGH, MEDIUM, LOW)
+- Specific remediation guidance with code examples
+- Exploitability assessment for each finding
 
 ## Technology Stack
 
