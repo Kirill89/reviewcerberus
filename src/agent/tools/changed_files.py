@@ -41,11 +41,21 @@ def _changed_files_impl(repo_path: str, target_branch: str) -> list[FileChange]:
         check=True,
     )
 
-    numstat_lines = {
-        line.split()[2]: (int(line.split()[0]), int(line.split()[1]))
-        for line in numstat_result.stdout.splitlines()
-        if line.strip() and len(line.split()) >= 3
-    }
+    # Parse numstat output, handling binary files (which show '-' instead of numbers)
+    numstat_lines = {}
+    for line in numstat_result.stdout.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) < 3:
+            continue
+
+        # Binary files show '-' for additions/deletions
+        additions = 0 if parts[0] == "-" else int(parts[0])
+        deletions = 0 if parts[1] == "-" else int(parts[1])
+        filepath = parts[2]
+
+        numstat_lines[filepath] = (additions, deletions)
 
     changes = []
     for line in result.stdout.splitlines():
