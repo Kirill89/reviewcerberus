@@ -139,6 +139,22 @@ The summary mode provides a concise overview including:
 - New components and system integration
 - Call graphs for complex interactions
 
+**Spaghetti Code Detection** - Code quality and redundancy analysis:
+
+```bash
+poetry run reviewcerberus --mode spaghetti
+```
+
+The spaghetti mode focuses on code quality and maintainability:
+
+- Code duplication (in changes and across codebase)
+- Opportunities to reuse existing functions/classes
+- Redundant checks and validations
+- Missing opportunities for abstraction
+- Better library usage
+- Dead or unreachable code
+- Over-engineering and unnecessary complexity
+
 ### Custom Target Branch
 
 Review against a different branch or commit hash:
@@ -300,6 +316,22 @@ Generated summary includes:
 4. **User Impact**: How changes affect end users (if applicable)
 5. **New Components**: New additions and system integration
 6. **Call Graph**: Interaction diagrams for complex workflows (if applicable)
+
+### Spaghetti Code Detection Mode
+
+Generated review includes:
+
+1. **Code Quality Summary**: Overall assessment of code quality
+2. **Detailed Findings**: Organized by category:
+   - Code Duplication
+   - Redundancy Issues
+   - Missed Reuse Opportunities
+   - Library Usage Optimization
+   - Abstraction Opportunities
+   - Dead Code Detection
+   - Over-Engineering Concerns
+3. **Prioritized Issue List**: With severity, location, impact, and concrete
+   fixes
 
 ## Development
 

@@ -51,9 +51,9 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--mode",
-        choices=["full", "summary"],
+        choices=["full", "summary", "spaghetti"],
         default="full",
-        help="Review mode: full (comprehensive review) or summary (high-level overview)",
+        help="Review mode: full (comprehensive review), summary (high-level overview), or spaghetti (code quality and redundancy detection)",
     )
     return parser.parse_args()
 

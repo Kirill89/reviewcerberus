@@ -26,6 +26,7 @@ def get_prompt(name: str) -> str:
     mode_mapping = {
         "full": "full_review.md",
         "summary": "summary_mode.md",
+        "spaghetti": "spaghetti_code_detection.md",
     }
 
     # Check if it's a mode name
