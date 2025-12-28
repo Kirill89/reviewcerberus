@@ -29,9 +29,18 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy application code
 COPY src ./src
 
+# Create non-root user and set up permissions
+RUN useradd -m -u 1000 -s /bin/bash reviewcerberus && \
+    chown -R reviewcerberus:reviewcerberus /app && \
+    mkdir -p /repo && \
+    chown reviewcerberus:reviewcerberus /repo
+
 # Add virtualenv to PATH and app to PYTHONPATH
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"
+
+# Switch to non-root user
+USER reviewcerberus
 
 # Set working directory for mounted repositories
 WORKDIR /repo
