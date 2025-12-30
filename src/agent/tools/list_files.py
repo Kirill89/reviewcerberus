@@ -32,9 +32,9 @@ def list_files(
 ) -> list[str] | ToolMessage:
     """List files in the repository or a specific directory."""
     if pattern:
-        print(f"🔧 list_files: {directory} ({pattern})")
+        print(f"🔧 [{runtime.context.agent_name}] list_files: {directory} ({pattern})")
     else:
-        print(f"🔧 list_files: {directory}")
+        print(f"🔧 [{runtime.context.agent_name}] list_files: {directory}")
     try:
         return _list_files_impl(runtime.context.repo_path, directory, pattern)
     except Exception as e:

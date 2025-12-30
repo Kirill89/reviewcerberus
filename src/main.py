@@ -1,11 +1,12 @@
 import argparse
+import asyncio
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-from .agent.runner import run_review, summarize_review
-from .agent.schema import Context
+from .agent.basic import run_review, summarize_review
+from .agent.expert import run_expert_review
 from .agent.tools.changed_files import FileChange, _changed_files_impl
 from .config import MODEL_NAME, MODEL_PROVIDER
 
@@ -31,7 +32,17 @@ def get_repo_root(path: str | None = None) -> str:
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="AI-powered code review tool for git branches"
+        description="AI-powered code review tool for git branches",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Review Modes:
+  basic   - Single comprehensive agent (faster, lower cost)
+  expert  - Multiple specialized agents running in parallel (thorough, ~10x cost)
+            Recommended with cheaper models (e.g., Claude Haiku) for cost balance
+
+Expert Mode Agent Control:
+  Use --no-* flags to disable specific agents in expert mode (all enabled by default)
+        """,
     )
     parser.add_argument(
         "--repo-path", help="Path to git repository (default: current directory)"
@@ -51,16 +62,85 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--mode",
-        choices=["full", "summary", "spaghetti", "security"],
-        default="full",
-        help="Review mode: full (comprehensive review), summary (high-level overview), spaghetti (code quality and redundancy detection), or security (OWASP Top 10 security analysis)",
+        choices=["basic", "expert"],
+        default="basic",
+        help="Review mode (see details below)",
     )
     parser.add_argument(
-        "--no-summary",
+        "--skip-summary",
         action="store_true",
-        help="Skip executive summary generation (faster)",
+        help="Skip executive summary generation (faster, basic mode only)",
     )
+
+    # Expert mode agent control flags
+    expert_group = parser.add_argument_group("expert mode agent control")
+    expert_group.add_argument(
+        "--no-security",
+        action="store_true",
+        help="Disable security analysis agent (expert mode)",
+    )
+    expert_group.add_argument(
+        "--no-code-quality",
+        action="store_true",
+        help="Disable code quality agent (expert mode)",
+    )
+    expert_group.add_argument(
+        "--no-performance",
+        action="store_true",
+        help="Disable performance analysis agent (expert mode)",
+    )
+    expert_group.add_argument(
+        "--no-architecture",
+        action="store_true",
+        help="Disable architecture review agent (expert mode)",
+    )
+    expert_group.add_argument(
+        "--no-documentation",
+        action="store_true",
+        help="Disable documentation review agent (expert mode)",
+    )
+    expert_group.add_argument(
+        "--no-error-handling",
+        action="store_true",
+        help="Disable error handling analysis agent (expert mode)",
+    )
+    expert_group.add_argument(
+        "--no-business-logic",
+        action="store_true",
+        help="Disable business logic review agent (expert mode)",
+    )
+    expert_group.add_argument(
+        "--no-testing",
+        action="store_true",
+        help="Disable testing review agent (expert mode)",
+    )
+
     return parser.parse_args()
+
+
+def validate_arguments(args: argparse.Namespace) -> None:
+    """Validate argument combinations and warn about misuse.
+
+    Args:
+        args: Parsed command-line arguments
+    """
+    # Check if --no-* flags are used without expert mode
+    agent_flags = [
+        args.no_security,
+        args.no_code_quality,
+        args.no_performance,
+        args.no_architecture,
+        args.no_documentation,
+        args.no_error_handling,
+        args.no_business_logic,
+        args.no_testing,
+    ]
+
+    if any(agent_flags) and args.mode != "expert":
+        print(
+            "Warning: --no-* flags are only used in expert mode. They will be ignored in basic mode.",
+            file=sys.stderr,
+        )
 
 
 def sanitize_branch_name(branch: str) -> str:
@@ -109,8 +189,12 @@ def print_changed_files_summary(changed_files: list[FileChange]) -> None:
     print()
 
 
-def main() -> None:
+async def async_main() -> None:
+    """Async main function that handles the review process."""
     args = parse_arguments()
+
+    # Validate argument combinations
+    validate_arguments(args)
 
     try:
         repo_path = get_repo_root(args.repo_path)
@@ -143,12 +227,6 @@ def main() -> None:
 
     print_changed_files_summary(changed_files)
 
-    context = Context(
-        repo_path=repo_path,
-        target_branch=args.target_branch,
-        changed_files=changed_files,
-    )
-
     print("Starting code review...")
     print()
 
@@ -161,20 +239,41 @@ def main() -> None:
         except Exception as e:
             print(f"Warning: Could not read instructions file: {e}", file=sys.stderr)
 
-    review_content, token_usage = run_review(
-        context, mode=args.mode, additional_instructions=additional_instructions
-    )
+    # Run appropriate review mode
+    if args.mode == "expert":
+        # Expert mode: multiple specialized agents in parallel
+        review_content, token_usage = await run_expert_review(
+            repo_path,
+            args.target_branch,
+            changed_files,
+            show_progress=True,
+            additional_instructions=additional_instructions,
+            no_security=args.no_security,
+            no_code_quality=args.no_code_quality,
+            no_performance=args.no_performance,
+            no_architecture=args.no_architecture,
+            no_documentation=args.no_documentation,
+            no_error_handling=args.no_error_handling,
+            no_business_logic=args.no_business_logic,
+            no_testing=args.no_testing,
+        )
+        # Note: Summary agent incorporates additional instructions if provided
+    else:
+        # Basic mode: single comprehensive agent
+        review_content, token_usage = await run_review(
+            repo_path,
+            args.target_branch,
+            changed_files,
+            mode=args.mode,
+            additional_instructions=additional_instructions,
+        )
 
-    # Add executive summary if requested
-    if not args.no_summary:
-        review_content, summary_usage = summarize_review(review_content)
-        # Merge token usage
-        if token_usage and summary_usage:
-            token_usage["total_input_tokens"] += summary_usage["input_tokens"]
-            token_usage["output_tokens"] += summary_usage["output_tokens"]
-            token_usage["total_tokens"] = (
-                token_usage["total_input_tokens"] + token_usage["output_tokens"]
-            )
+        # Add executive summary if requested (basic mode only)
+        if not args.skip_summary:
+            review_content, summary_usage = await summarize_review(review_content)
+            # Merge token usage
+            if token_usage and summary_usage:
+                token_usage = token_usage + summary_usage
 
     print()
     Path(output_file).write_text(review_content)
@@ -182,10 +281,12 @@ def main() -> None:
 
     if token_usage:
         print()
-        print("Token Usage:")
-        print(f"  Input tokens:  {token_usage['total_input_tokens']:,}")
-        print(f"  Output tokens: {token_usage['output_tokens']:,}")
-        print(f"  Total tokens:  {token_usage['total_tokens']:,}")
+        token_usage.log_statistics()
+
+
+def main() -> None:
+    """Entry point that runs the async main function."""
+    asyncio.run(async_main())
 
 
 if __name__ == "__main__":

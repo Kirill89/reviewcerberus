@@ -9,10 +9,12 @@ comprehensive review reports with executive summaries.
 
 ## Key Features
 
-- **Three Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti
-  (code quality)
+- **Two Operation Modes**: Basic (single agent, fast) and Expert (multiple
+  specialized agents, thorough)
+- **Four Review Types**: Full (comprehensive), Summary (high-level), Spaghetti
+  (code quality), Security (OWASP Top 10)
 - **Executive Summaries**: Auto-generated highlights of critical issues
-- **Multi-Provider**: AWS Bedrock or Anthropic API
+- **Multi-Provider**: AWS Bedrock, Anthropic API, or Ollama
 - **Smart Analysis**: Token-efficient tools with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
 
@@ -42,14 +44,12 @@ ______________________________________________________________________
 ### Basic Commands
 
 ```bash
-# Default: full review with executive summary
+# Default: basic mode (single agent, fast, lower cost)
 poetry run reviewcerberus
 
-# Choose review mode
-poetry run reviewcerberus --mode full       # Detailed analysis
-poetry run reviewcerberus --mode summary    # High-level overview
-poetry run reviewcerberus --mode spaghetti  # Code quality focus
-poetry run reviewcerberus --mode security   # Security analysis (OWASP Top 10)
+# Expert mode: multiple specialized agents (thorough, ~10x cost)
+# Recommended with cheaper models like Claude Haiku
+poetry run reviewcerberus --mode expert
 
 # Custom target branch
 poetry run reviewcerberus --target-branch develop
@@ -64,85 +64,90 @@ poetry run reviewcerberus --repo-path /path/to/repo
 # Add custom review guidelines
 poetry run reviewcerberus --instructions guidelines.md
 
-# Skip executive summary (faster)
-poetry run reviewcerberus --no-summary
+# Skip executive summary (faster, basic mode only)
+poetry run reviewcerberus --skip-summary
 ```
 
 ### Example Commands
 
 ```bash
-# Full review with custom guidelines
-poetry run reviewcerberus --mode full --target-branch main \
+# Expert mode review with custom guidelines
+poetry run reviewcerberus --mode expert --target-branch main \
   --output review.md --instructions guidelines.md
 
-# Quick summary for a different repo
-poetry run reviewcerberus --mode summary --repo-path /other/repo
+# Basic mode for quick review
+poetry run reviewcerberus --repo-path /other/repo
 
-# Code quality check without summary
-poetry run reviewcerberus --mode spaghetti --no-summary
+# Expert mode with specific agents disabled
+poetry run reviewcerberus --mode expert --no-documentation --no-testing
 ```
 
 ______________________________________________________________________
 
-## Review Modes
+## Operation Modes
 
-### 1. Full Review (Comprehensive Analysis)
+### Basic Mode (Default)
 
-Detailed code review covering:
+**Single comprehensive agent** that performs complete code review:
 
-- **Logic & Correctness**: Bugs, edge cases, error handling
-- **Security**: OWASP issues, access control, input validation
-- **Performance**: N+1 queries, bottlenecks, scalability
-- **Code Quality**: Duplication, complexity, maintainability
-- **Side Effects**: Impact on other system parts
-- **Testing**: Coverage gaps, missing test cases
+- **Speed**: Fast, completes in one agent run
+- **Cost**: Standard model costs (~1x baseline)
+- **Scope**: Covers all review aspects in one analysis
+- **Best for**: Most code reviews, quick feedback, cost-sensitive projects
 
-### 2. Summary Mode (High-Level Overview)
+### Expert Mode
 
-Concise overview including:
+**Multiple specialized agents** running in parallel for thorough analysis:
 
-- Brief description of changes (2-4 sentences)
-- Task-style description and logical grouping
-- User impact and new components
-- System integration overview
+- **Speed**: Slower, runs 8+ specialized agents concurrently
+- **Cost**: ~10x more expensive due to multiple agents
+- **Scope**: Each agent focuses on specific domain (security, performance, etc.)
+- **Best for**: Critical reviews, security audits, architectural decisions
 
-### 3. Spaghetti Mode (Code Quality Analysis)
+**⚠️ Cost Warning**: Expert mode runs multiple agents in parallel, consuming
+significantly more tokens. We recommend using cheaper models like Claude Haiku
+to balance thoroughness with cost:
 
-Focuses on code maintainability:
+```bash
+# Set in .env file:
+MODEL_NAME=us.anthropic.claude-haiku-4-5-20251001-v1:0  # For Bedrock
+# or
+MODEL_NAME=claude-haiku-4-5-20251001  # For Anthropic API
+```
 
-- **Code Duplication**: Within changes and across codebase
-- **Reuse Opportunities**: Existing functions/classes to leverage
-- **Redundancy**: Repeated checks and validations
-- **Library Usage**: Standard library or dependency suggestions
-- **Abstraction**: Opportunities for better patterns
-- **Dead Code**: Unused imports, unreachable code
-- **Over-Engineering**: Unnecessary complexity
+**Specialized Agents**:
 
-### 4. Security Mode (OWASP Top 10 Analysis)
+1. **Security**: OWASP Top 10, access control, injection vulnerabilities
+2. **Code Quality**: Duplication, complexity, maintainability
+3. **Performance**: Bottlenecks, N+1 queries, scalability issues
+4. **Architecture**: Design patterns, coupling, modularity
+5. **Documentation**: Code comments, README updates, API docs
+6. **Error Handling**: Exception handling, error messages, recovery
+7. **Business Logic**: Correctness, edge cases, business rules
+8. **Testing**: Test coverage, missing test cases, test quality
 
-Deep security analysis with data flow tracing:
+**Control Agents**: Disable specific agents with flags:
 
-- **Access Control**: Missing authorization, privilege escalation
-- **Cryptographic Failures**: Hardcoded secrets, weak encryption
-- **Injection**: Command, SQL, Path Traversal, Code Injection
-- **Authentication & Authorization**: Weak auth, session issues
-- **Security Misconfiguration**: Debug mode, verbose errors
-- **Vulnerable Components**: Outdated dependencies
-- **Logging & Monitoring**: Missing security logs
-- **SSRF**: Unvalidated URL requests
+```bash
+poetry run reviewcerberus --mode expert --no-documentation --no-testing
+```
 
-**Key Feature**: The agent actively traces data flows from user input to
-dangerous sinks to confirm exploitability, not just pattern matching.
+Available flags: `--no-security`, `--no-code-quality`, `--no-performance`,
+`--no-architecture`, `--no-documentation`, `--no-error-handling`,
+`--no-business-logic`, `--no-testing`
 
-### Executive Summary (All Modes)
+### Executive Summary (Basic Mode Only)
 
-Every review includes an auto-generated summary at the top:
+Basic mode reviews include an auto-generated executive summary at the top:
 
 - Top 3-5 critical issues with locations
 - Issue counts by severity (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, ⚪ LOW)
 - Actionable recommendations
 
-Disable with `--no-summary` for faster reviews.
+Disable with `--skip-summary` for faster reviews.
+
+**Note**: Expert mode does not generate executive summaries, as the summary
+agent already synthesizes findings from all specialized agents.
 
 ______________________________________________________________________
 
@@ -247,16 +252,38 @@ docker run --rm -it -v $(pwd):/repo \
 
 ```bash
 MAX_OUTPUT_TOKENS=8192      # Maximum tokens in response
-RECURSION_LIMIT=200         # Agent recursion limit
+RECURSION_LIMIT=200         # Agent recursion limit (basic mode)
+RECURSION_LIMIT=600         # Agent recursion limit (expert mode, recommended)
+```
+
+### Model Recommendations
+
+**For Expert Mode**: Use cheaper models to balance cost with thoroughness:
+
+```bash
+# Bedrock (recommended for expert mode)
+MODEL_NAME=us.anthropic.claude-haiku-4-5-20251001-v1:0
+
+# Anthropic API (recommended for expert mode)
+MODEL_NAME=claude-haiku-4-5-20251001
+```
+
+**For Basic Mode**: Use more capable models for best single-agent performance:
+
+```bash
+# Bedrock
+MODEL_NAME=us.anthropic.claude-sonnet-4-5-20250929-v1:0  # default
+
+# Anthropic API
+MODEL_NAME=claude-sonnet-4-5-20250929  # default
 ```
 
 ### Custom Review Prompts
 
 Customize prompts in `src/agent/prompts/`:
 
-- `full_review.md` - Full review mode
-- `summary_mode.md` - Summary mode
-- `spaghetti_code_detection.md` - Spaghetti mode
+- `basic_mode.md` - Basic mode comprehensive review
+- `expert/` - Expert mode specialized agent prompts
 - `executive_summary.md` - Executive summary generation
 - `context_summary.md` - Context compaction for large PRs
 
@@ -314,10 +341,19 @@ src/
 └── agent/
     ├── agent.py                     # Agent setup
     ├── model.py                     # Model initialization
-    ├── runner.py                    # Review execution + summarization
-    ├── prompts/                     # Review prompts (5 files)
+    ├── basic/                       # Basic mode (single agent)
+    │   └── runner.py                # Review execution
+    ├── expert/                      # Expert mode (multi-agent)
+    │   ├── runner.py                # Multi-agent orchestration
+    │   ├── schemas.py               # Structured outputs
+    │   └── utils.py                 # Utilities
+    ├── prompts/                     # Review prompts
+    │   ├── basic_mode.md            # Basic mode prompt
+    │   ├── expert/                  # Expert mode agent prompts (9 files)
+    │   └── ...                      # Other prompts
+    ├── callbacks/                   # Progress tracking
+    ├── middleware/                  # Agent middleware
     ├── schema.py                    # Data models
-    ├── progress_callback_handler.py # Progress display
     └── tools/                       # 6 review tools
 ```
 

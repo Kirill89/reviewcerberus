@@ -100,7 +100,7 @@ def _changed_files_impl(repo_path: str, target_branch: str) -> list[FileChange]:
 @tool
 def changed_files(runtime: ToolRuntime[Context]) -> list[FileChange] | ToolMessage:
     """List all files that changed between target branch and current branch (HEAD)."""
-    print(f"🔧 changed_files")
+    print(f"🔧 [{runtime.context.agent_name}] changed_files")
     try:
         return _changed_files_impl(
             runtime.context.repo_path, runtime.context.target_branch

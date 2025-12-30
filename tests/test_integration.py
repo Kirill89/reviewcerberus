@@ -1,24 +1,24 @@
-from src.agent.runner import run_review
-from src.agent.schema import Context
+import pytest
+
+from src.agent.basic import run_review
 from src.agent.tools.changed_files import _changed_files_impl
 from tests.test_helper import create_test_repo
 
 
-def test_full_review_workflow() -> None:
+@pytest.mark.asyncio
+async def test_full_review_workflow() -> None:
     """Integration test: full code review workflow from git repo to review output."""
     with create_test_repo() as repo_path:
         # Setup: Get changed files
         changed_files = _changed_files_impl(str(repo_path), "main")
 
-        # Create context
-        context = Context(
-            repo_path=str(repo_path), target_branch="main", changed_files=changed_files
-        )
-
         # Run review without progress output for cleaner test logs
         # Use additional instructions to keep the review very brief for faster testing
-        review_content, token_usage = run_review(
-            context,
+        review_content, token_usage = await run_review(
+            str(repo_path),
+            "main",
+            changed_files,
+            mode="basic",
             show_progress=False,
             additional_instructions="Keep this review extremely brief (max 3-4 sentences total). Only mention the most critical findings.",
         )
@@ -32,6 +32,6 @@ def test_full_review_workflow() -> None:
 
         # Verify token usage is returned
         assert token_usage is not None
-        assert "total_input_tokens" in token_usage
-        assert "output_tokens" in token_usage
-        assert "total_tokens" in token_usage
+        assert token_usage.input_tokens > 0
+        assert token_usage.output_tokens > 0
+        assert token_usage.total_tokens > 0

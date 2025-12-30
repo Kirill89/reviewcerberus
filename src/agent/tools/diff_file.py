@@ -81,7 +81,9 @@ def diff_file(
     end_hunk: int = 20,
 ) -> FileDiff | ToolMessage:
     """Show git diff for a specific file between target branch and current branch (HEAD)."""
-    print(f"🔧 diff_file: {file_path} (hunks {start_hunk}-{end_hunk})")
+    print(
+        f"🔧 [{runtime.context.agent_name}] diff_file: {file_path} (hunks {start_hunk}-{end_hunk})"
+    )
 
     try:
         return _diff_file_impl(

@@ -3,10 +3,10 @@ from typing import Any
 from langchain.agents import create_agent
 
 from .checkpointer import checkpointer
+from .middleware import SummarizingMiddleware
 from .model import model
 from .prompts import get_prompt
 from .schema import Context
-from .summarizing_middleware import SummarizingMiddleware
 from .tools import (
     changed_files,
     diff_file,

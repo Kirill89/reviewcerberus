@@ -15,19 +15,19 @@ critical issues.
 
 Simple command-line interface with sensible defaults:
 
-- **Review Mode**: `full` (default), `summary`, `spaghetti`, or `security`
-  - `full`: Comprehensive code review with detailed analysis
-  - `summary`: High-level overview of changes
-  - `spaghetti`: Code quality and redundancy detection (duplication, missed
-    reuse opportunities, dead code, over-engineering)
-  - `security`: OWASP Top 10 security analysis with data flow tracing
+- **Operation Mode**: `basic` (default) or `expert`
+  - `basic`: Single comprehensive agent (fast, cost-effective)
+  - `expert`: Multiple specialized agents running in parallel (thorough, ~10x
+    cost)
+    - Recommended with cheaper models (e.g., Claude Haiku) for cost balance
+    - Can disable specific agents with `--no-*` flags
 - **Target Branch**: `main` (default) or user-specified (supports branch names
   and commit hashes)
 - **Output File**: `review_{current_branch_name}.md` (default) or user-specified
 - **Additional Instructions**: Optional markdown file with custom review
   guidelines
 - **Executive Summary**: Auto-generated summary prepended to all reviews
-  (disable with `--no-summary`)
+  (disable with `--skip-summary`)
 
 The tool always reviews the currently checked out branch against the target
 branch.
@@ -106,16 +106,16 @@ at initialization, eliminating the need for a separate tool call.
 
 ## Output Format
 
-**All review modes include an executive summary at the top** that:
+**All reviews include an executive summary at the top** that:
 
 - Highlights the most critical issues (top 3-5)
 - Shows issue counts by severity
 - Provides actionable recommendations
 - Uses emojis for visual clarity (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, ⚪ LOW)
 
-### Full Review Mode
+### Basic Mode Output
 
-Markdown file containing:
+Markdown file containing comprehensive single-agent review:
 
 - Executive summary (auto-generated)
 - Review summary
@@ -124,44 +124,26 @@ Markdown file containing:
 - Security concerns
 - Performance suggestions
 - Best practice recommendations
+- Testing gaps
 
-### Summary Mode
+### Expert Mode Output
 
-Markdown file containing:
-
-- Executive summary (auto-generated)
-- High-level overview (2-4 sentences)
-- Task-style description of changes
-- Logical grouping of changes by purpose
-- User impact (if applicable)
-- New components and system integration
-- Call graphs for complex interactions (if applicable)
-
-### Spaghetti Code Detection Mode
-
-Markdown file containing:
+Markdown file containing multi-agent structured analysis:
 
 - Executive summary (auto-generated)
-- Code quality assessment
-- Code duplication analysis (within changes and across codebase)
-- Redundancy detection (repeated patterns, checks, validations)
-- Missed reuse opportunities (existing functions/classes that could be used)
-- Library usage optimization (standard library or dependencies)
-- Abstraction opportunities (inheritance, composition, interfaces)
-- Dead/unreachable code detection
-- Over-engineering concerns
-
-### Security Review Mode
-
-Markdown file containing:
-
-- Executive security summary (auto-generated)
-- Security posture overview
-- Detailed vulnerability analysis organized by OWASP Top 10 categories
-- Data flow analysis showing source → processing → sink for each vulnerability
-- Prioritized security issues by severity (CRITICAL, HIGH, MEDIUM, LOW)
-- Specific remediation guidance with code examples
-- Exploitability assessment for each finding
+- Comprehensive review synthesizing all agent findings
+- Organized by severity and category
+- Cross-cutting concerns identified across multiple agents
+- Agent-specific sections showing:
+  - **Security Agent**: OWASP Top 10, access control, injection vulnerabilities
+  - **Code Quality Agent**: Duplication, complexity, maintainability
+  - **Performance Agent**: Bottlenecks, N+1 queries, scalability
+  - **Architecture Agent**: Design patterns, coupling, modularity
+  - **Documentation Agent**: Code comments, README updates, API docs
+  - **Error Handling Agent**: Exception handling, error messages, recovery
+  - **Business Logic Agent**: Correctness, edge cases, business rules
+  - **Testing Agent**: Test coverage, missing test cases, test quality
+- Summary agent synthesis with prioritized recommendations
 
 ## Technology Stack
 

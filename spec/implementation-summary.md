@@ -8,10 +8,11 @@ principles.
 
 **Key Features:**
 
-- Three specialized review modes: full, summary, and spaghetti (code quality)
+- Two operation modes: basic (single agent) and expert (multi-agent)
 - Auto-generated executive summaries for all reviews
 - Multi-provider support (AWS Bedrock, Anthropic API, and Ollama)
 - Automatic context management for large PRs
+- Structured output with Pydantic models (expert mode)
 
 **Tech Stack:**
 
@@ -154,29 +155,38 @@ code/generated files:
 - Without truncation: 438k tokens from 25 matches (context explosion)
 - With truncation: 1.5k tokens from 25 matches (295x reduction)
 
-### 11. Review Modes
+### 11. Operation Modes
 
-Three specialized review modes available:
+Two operation modes available:
 
-**Full Mode (default):**
+**Basic Mode (default):**
 
-- Comprehensive code review with detailed analysis
-- Checks logic, security, performance, code quality, side effects, testing
-- Produces prioritized issue list with severity levels
+- Single comprehensive agent
+- Fast, cost-effective (~1x baseline cost)
+- Covers all review aspects: logic, security, performance, code quality, testing
+- Best for most code reviews
 
-**Summary Mode:**
+**Expert Mode:**
 
-- High-level overview of changes
-- Task-style description and logical grouping
-- User impact analysis and system integration overview
-
-**Spaghetti Mode:**
-
-- Code quality and redundancy detection
-- Actively searches codebase for similar patterns using `search_in_files`
-- Detects: duplication, missed reuse opportunities, redundant patterns, dead
-  code, over-engineering
-- Suggests: library usage, abstraction opportunities, refactoring
+- Multiple specialized agents running in parallel (8 agents)
+- Thorough, expensive (~10x baseline cost)
+- Each agent has structured output with Pydantic models
+- Summary agent synthesizes all findings
+- Agents: Security, Code Quality, Performance, Architecture, Documentation,
+  Error Handling, Business Logic, Testing
+- Best for critical reviews, security audits, architectural decisions
+- **Cost optimization**: Recommended to use cheaper models like Claude Haiku
+  - Bedrock: `us.anthropic.claude-haiku-4-5-20251001-v1:0`
+  - Anthropic API: `claude-haiku-4-5-20251001`
+- Can disable specific agents with CLI flags (`--no-security`,
+  `--no-code-quality`, etc.)
+- Features:
+  - Parallel execution with semaphore control (MAX_PARALLEL_AGENTS)
+  - RecursionTracker callback/middleware for accurate step counting
+  - Tool deduplication middleware to prevent redundant calls
+  - Summarizing middleware for context management
+  - Structured output (SpecializedAgentOutput, SummaryAgentOutput)
+  - Agent statistics appended to review
 
 ### 12. Executive Summary
 
@@ -221,20 +231,51 @@ reviewcerberus/
 │       │   ├── bedrock_caching.py       # Bedrock caching wrapper
 │       │   ├── anthropic.py             # Anthropic provider
 │       │   └── ollama.py                # Ollama provider
+│       ├── basic/                       # Basic mode (single agent)
+│       │   ├── __init__.py              # Exports
+│       │   └── runner.py                # Review execution + summarize
+│       ├── expert/                      # Expert mode (multi-agent)
+│       │   ├── __init__.py              # Exports
+│       │   ├── runner.py                # Multi-agent orchestration
+│       │   ├── schemas.py               # Structured outputs (Pydantic)
+│       │   └── utils.py                 # Utilities
 │       ├── prompts/                     # Review prompts
 │       │   ├── __init__.py              # Prompt loader
-│       │   ├── full_review.md           # Full review mode prompt
-│       │   ├── summary_mode.md          # Summary mode prompt
-│       │   ├── spaghetti_code_detection.md  # Spaghetti mode prompt
+│       │   ├── basic_mode.md            # Basic mode prompt
+│       │   ├── expert/                  # Expert mode agent prompts
+│       │   │   ├── security_agent.md
+│       │   │   ├── code_quality_agent.md
+│       │   │   ├── performance_agent.md
+│       │   │   ├── architecture_agent.md
+│       │   │   ├── documentation_agent.md
+│       │   │   ├── error_handling_agent.md
+│       │   │   ├── business_logic_agent.md
+│       │   │   ├── testing_agent.md
+│       │   │   └── summary_agent.md
 │       │   ├── executive_summary.md     # Executive summary prompt
-│       │   └── context_summary.md       # Context compaction prompt
+│       │   ├── context_summary.md       # Context compaction prompt
+│       │   ├── recursion_budget_warning.md  # Recursion warnings
+│       │   └── tool_usage_efficiency.md # Tool usage guidance
+│       ├── callbacks/                   # Callback handlers
+│       │   ├── __init__.py              # Exports
+│       │   ├── progress_callback_handler.py  # Progress display
+│       │   └── recursion_tracker.py     # Recursion tracking (callback + middleware)
+│       ├── middleware/                  # Agent middleware
+│       │   ├── __init__.py              # Exports
+│       │   ├── summarizing_middleware.py  # Context compaction
+│       │   └── tool_deduplication_middleware.py  # Prevent redundant tools
+│       ├── formatting.py                # Review formatting utilities
 │       ├── schema.py                    # Context model
-│       ├── runner.py                    # Agent runner + summarize_review()
-│       ├── progress_callback_handler.py # Progress display
+│       ├── token_usage.py               # Token tracking utilities
 │       └── tools/                       # 6 review tools
 │
 ├── tests/                         # Integration tests
-│   └── agent/tools/               # Test per tool
+│   └── agent/
+│       ├── basic/                 # Basic mode tests
+│       ├── expert/                # Expert mode tests
+│       ├── callbacks/             # Callback tests
+│       ├── middleware/            # Middleware tests
+│       └── tools/                 # Test per tool
 │
 └── spec/                          # Documentation
     ├── project-description.md
@@ -375,7 +416,12 @@ MODEL_PROVIDER=bedrock  # default
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_REGION_NAME=us-east-1
+
+# For basic mode (default)
 MODEL_NAME=us.anthropic.claude-sonnet-4-5-20250929-v1:0
+
+# For expert mode (recommended to reduce cost)
+MODEL_NAME=us.anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 **.env (Anthropic API):**
@@ -383,7 +429,12 @@ MODEL_NAME=us.anthropic.claude-sonnet-4-5-20250929-v1:0
 ```bash
 MODEL_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
+
+# For basic mode (default)
 MODEL_NAME=claude-sonnet-4-5-20250929
+
+# For expert mode (recommended to reduce cost)
+MODEL_NAME=claude-haiku-4-5-20251001
 ```
 
 **.env (Ollama):**
@@ -408,13 +459,15 @@ ______________________________________________________________________
 ## Usage
 
 ```bash
-# Basic usage (full review with executive summary)
+# Basic mode (default - single agent, fast, cost-effective)
 poetry run reviewcerberus
 
-# Different review modes
-poetry run reviewcerberus --mode full       # Comprehensive review
-poetry run reviewcerberus --mode summary    # High-level overview
-poetry run reviewcerberus --mode spaghetti  # Code quality/redundancy
+# Expert mode (multiple agents, thorough, ~10x cost)
+# Recommended with Haiku for cost balance
+poetry run reviewcerberus --mode expert
+
+# Expert mode with specific agents disabled
+poetry run reviewcerberus --mode expert --no-documentation --no-testing
 
 # Specify target branch
 poetry run reviewcerberus --target-branch develop
@@ -428,8 +481,8 @@ poetry run reviewcerberus --repo-path /path/to/repo
 # Additional review instructions
 poetry run reviewcerberus --instructions guidelines.md
 
-# Skip executive summary (faster)
-poetry run reviewcerberus --no-summary
+# Skip executive summary (faster, basic mode only)
+poetry run reviewcerberus --skip-summary
 ```
 
 ______________________________________________________________________

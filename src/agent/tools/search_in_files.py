@@ -106,16 +106,31 @@ def search_in_files(
     context_lines: int = 2,
     max_results: int = 50,
     max_line_length: int = 300,
+    reasoning: str = "",
 ) -> list[SearchMatch] | ToolMessage:
     """Search for text patterns across files in the repository.
+
+    Args:
+        pattern: Text pattern or regex to search for
+        file_pattern: Optional file pattern to restrict search (e.g., "*.py")
+        context_lines: Number of context lines before/after match (default: 2)
+        max_results: Maximum number of results to return (default: 50)
+        max_line_length: Maximum length per line, longer lines truncated (default: 300)
+        reasoning: Optional explanation of what you're searching for and why. Helps improve search patterns.
 
     Lines longer than max_line_length characters will be truncated to prevent
     massive outputs from minified code or generated files.
     """
+    agent_name = runtime.context.agent_name
+
+    # Log reasoning if provided
+    if reasoning:
+        print(f"💭 [{agent_name}] {reasoning}")
+
     if file_pattern:
-        print(f"🔧 search_in_files: '{pattern}' in {file_pattern}")
+        print(f"🔧 [{agent_name}] search_in_files: '{pattern}' in {file_pattern}")
     else:
-        print(f"🔧 search_in_files: '{pattern}'")
+        print(f"🔧 [{agent_name}] search_in_files: '{pattern}'")
     try:
         return _search_in_files_impl(
             runtime.context.repo_path,

@@ -6,14 +6,24 @@ from pathlib import Path
 def get_prompt(name: str) -> str:
     """Load a prompt by name.
 
-    Maps mode names to filenames:
-    - "full" → full_review.md
-    - "summary" → summary_mode.md
-    - "spaghetti" → spaghetti_code_detection.md
-    - "security" → security_review.md
+    Modes:
+    - "basic" → basic_mode.md (single comprehensive agent)
+    - "expert" → Uses multiple specialized agents (implemented separately)
 
-    For other prompts, uses direct names:
+    Direct prompt names:
     - "context_summary" → context_summary.md
+    - "executive_summary" → executive_summary.md
+
+    Expert mode agents:
+    - "expert/security_agent" → expert/security_agent.md
+    - "expert/code_quality_agent" → expert/code_quality_agent.md
+    - "expert/performance_agent" → expert/performance_agent.md
+    - "expert/architecture_agent" → expert/architecture_agent.md
+    - "expert/documentation_agent" → expert/documentation_agent.md
+    - "expert/error_handling_agent" → expert/error_handling_agent.md
+    - "expert/business_logic_agent" → expert/business_logic_agent.md
+    - "expert/testing_agent" → expert/testing_agent.md
+    - "expert/summary_agent" → expert/summary_agent.md
 
     Args:
         name: The prompt name or mode name
@@ -26,15 +36,15 @@ def get_prompt(name: str) -> str:
     """
     # Map mode names to filenames
     mode_mapping = {
-        "full": "full_review.md",
-        "summary": "summary_mode.md",
-        "spaghetti": "spaghetti_code_detection.md",
-        "security": "security_review.md",
+        "basic": "basic_mode.md",
     }
 
     # Check if it's a mode name
     if name in mode_mapping:
         filename = mode_mapping[name]
+    elif "/" in name:
+        # Expert mode agent (e.g., "expert/security_agent")
+        filename = f"{name}.md"
     else:
         # Direct name (e.g., "context_summary")
         filename = f"{name}.md"

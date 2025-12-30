@@ -1,4 +1,3 @@
-import re
 import subprocess
 
 from langchain_core.messages import ToolMessage
@@ -65,27 +64,44 @@ def read_file_part(
     start_line: int = 1,
     num_lines: int = 50,
     max_line_length: int = 500,
+    reasoning: str = "",
 ) -> FileContent | ToolMessage:
     """Read a portion of a file starting from a specific line.
+
+    IMPORTANT: If you need to understand a file thoroughly, it's much more efficient to read the
+    more data in one call (e.g., num_lines=1000) rather than making many small reads.
+    Each tool call has overhead, so reading larger chunks or the complete file saves time and
+    recursion budget. Only use small reads when you need a very specific section.
+
+    The response includes total_lines so you can decide if you need to read more.
 
     Args:
         file_path: Path to the file relative to repository root
         start_line: Line number to start reading from (1-indexed). Defaults to 1 (beginning of file).
-        num_lines: Number of lines to read. Defaults to 50. Will read fewer lines if near end of file.
+        num_lines: Number of lines to read. Defaults to 50. Use larger values (500-1000) for efficiency.
         max_line_length: Maximum length for each line. Lines longer than this will be truncated. Defaults to 500.
+        reasoning: Optional explanation of why you're reading this file and what you're looking for. Helps improve tool usage patterns.
 
     Returns:
-        File content with line numbers for the specified range.
+        File content with line numbers for the specified range, plus total_lines for the file.
 
     Examples:
-        - read_file_part("src/main.py", 100) - reads 50 lines starting from line 100
-        - read_file_part("src/main.py", 100, 20) - reads 20 lines starting from line 100
-        - read_file_part("src/main.py") - reads first 50 lines of the file
+        - read_file_part("src/main.py", 1, 1000, reasoning="Need to understand error handling patterns") - efficiently reads entire file
+        - read_file_part("src/main.py", 100, 500) - reads 500 lines starting from line 100
+        - read_file_part("src/main.py") - reads first 50 lines
 
     Lines longer than max_line_length will be truncated to prevent massive outputs
     from minified code or generated files.
     """
-    print(f"🔧 read_file_part: {file_path} (from line {start_line}, {num_lines} lines)")
+    agent_name = runtime.context.agent_name
+
+    # Log reasoning if provided
+    if reasoning:
+        print(f"💭 [{agent_name}] {reasoning}")
+
+    print(
+        f"🔧 [{agent_name}] read_file_part: {file_path} (from line {start_line}, {num_lines} lines)"
+    )
 
     try:
         return _read_file_part_impl(

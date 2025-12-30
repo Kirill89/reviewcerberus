@@ -53,7 +53,7 @@ def get_commit_messages(
     runtime: ToolRuntime[Context], max_commits: int = 20
 ) -> list[CommitInfo] | ToolMessage:
     """Get commit messages between target branch and current branch (HEAD)."""
-    print(f"🔧 get_commit_messages")
+    print(f"🔧 [{runtime.context.agent_name}] get_commit_messages")
     try:
         return _get_commit_messages_impl(
             runtime.context.repo_path, runtime.context.target_branch, max_commits

@@ -36,7 +36,10 @@ MODEL_NAME = os.getenv(
     ),
 )
 MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "8192"))
-RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "200"))
+RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "600"))
+
+# Multi-agent configuration
+MAX_PARALLEL_AGENTS = int(os.getenv("MAX_PARALLEL_AGENTS", "4"))
 
 # Context management
 CONTEXT_COMPACT_THRESHOLD = int(os.getenv("CONTEXT_COMPACT_THRESHOLD", "140000"))
