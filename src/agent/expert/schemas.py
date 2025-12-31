@@ -26,6 +26,9 @@ class IssueLocation(BaseModel):
 class AgentIssue(BaseModel):
     """Specific code issue found by an agent."""
 
+    id: str | None = Field(
+        default=None, description="Unique identifier assigned after agent completes"
+    )
     issue_type: str = Field(description="Category of the issue")
     severity: Severity = Field(description="Severity level of the issue")
     location: IssueLocation = Field(description="Location of the issue in code")
@@ -41,6 +44,9 @@ class AgentIssue(BaseModel):
 class AgentNote(BaseModel):
     """General observation without specific file location."""
 
+    id: str | None = Field(
+        default=None, description="Unique identifier assigned after agent completes"
+    )
     note: str = Field(description="The observation or general finding")
     context: Optional[str] = Field(
         default=None, description="Optional additional context"
@@ -63,4 +69,21 @@ class SummaryAgentOutput(BaseModel):
 
     markdown_summary: str = Field(
         description="Complete markdown review synthesizing all agent findings"
+    )
+
+
+class VerificationAgentOutput(BaseModel):
+    """Output from the verification agent after filtering false positives."""
+
+    accepted_issue_ids: list[str] = Field(
+        default_factory=list,
+        description="List of issue IDs that passed verification (are legitimate)",
+    )
+    accepted_note_ids: list[str] = Field(
+        default_factory=list,
+        description="List of note IDs that passed verification (are legitimate)",
+    )
+    verification_notes: list[str] = Field(
+        default_factory=list,
+        description="Notes explaining major filtering decisions and patterns observed",
     )

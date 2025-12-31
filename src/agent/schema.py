@@ -9,13 +9,19 @@ if TYPE_CHECKING:
 
 
 class Context(BaseModel):
+    """Base context for specialized agents."""
+
     repo_path: str = Field(description="Absolute path to the git repository")
     target_branch: str = Field(description="Base branch to compare against")
     changed_files: list = Field(description="List of FileChange objects")
     agent_name: str = Field(
         description="Name of the current agent (for tracking tool calls)"
     )
-    agent_findings: dict[str, Any] | None = Field(
-        default=None,
-        description="Structured findings from specialized agents (expert mode only)",
+
+
+class ContextWithFindings(Context):
+    """Extended context for verification and summary agents with agent findings."""
+
+    agent_findings: dict[str, Any] = Field(
+        description="Structured findings from specialized agents with IDs assigned"
     )
