@@ -1,5 +1,4 @@
 import subprocess
-from pathlib import Path
 
 from src.agent.tools.search_in_files import _search_in_files_impl
 from tests.test_helper import create_test_repo

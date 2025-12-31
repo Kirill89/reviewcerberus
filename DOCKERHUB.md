@@ -1,6 +1,7 @@
 # ReviewCerberus
 
-AI-powered code review tool that analyzes git branch differences and generates comprehensive review reports with executive summaries.
+AI-powered code review tool that analyzes git branch differences and generates
+comprehensive review reports with executive summaries.
 
 ## Quick Start
 
@@ -12,11 +13,13 @@ docker run --rm -it -v $(pwd):/repo \
   --repo-path /repo --output /repo/review.md
 ```
 
-**That's it!** The review will be saved to `review.md` in your current directory.
+**That's it!** The review will be saved to `review.md` in your current
+directory.
 
 ## Key Features
 
-- **Four Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti (code quality), Security (OWASP Top 10)
+- **Four Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti
+  (code quality), Security (OWASP Top 10)
 - **Executive Summaries**: Auto-generated highlights of critical issues
 - **Multi-Provider**: AWS Bedrock or Anthropic API
 - **Smart Analysis**: Token-efficient tools with prompt caching
@@ -25,6 +28,7 @@ docker run --rm -it -v $(pwd):/repo \
 ## Usage Examples
 
 Choose review mode:
+
 ```bash
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
@@ -34,6 +38,7 @@ docker run --rm -it -v $(pwd):/repo \
 ```
 
 Custom target branch:
+
 ```bash
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
@@ -43,6 +48,7 @@ docker run --rm -it -v $(pwd):/repo \
 ```
 
 Skip executive summary (faster):
+
 ```bash
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
@@ -54,6 +60,7 @@ docker run --rm -it -v $(pwd):/repo \
 ## Review Modes
 
 ### Full Review (Comprehensive Analysis)
+
 - Logic & Correctness: Bugs, edge cases, error handling
 - Security: OWASP issues, access control, input validation
 - Performance: N+1 queries, bottlenecks, scalability
@@ -62,12 +69,14 @@ docker run --rm -it -v $(pwd):/repo \
 - Testing: Coverage gaps, missing test cases
 
 ### Summary Mode (High-Level Overview)
+
 - Brief description of changes (2-4 sentences)
 - Task-style description and logical grouping
 - User impact and new components
 - System integration overview
 
 ### Spaghetti Mode (Code Quality Analysis)
+
 - Code Duplication: Within changes and across codebase
 - Reuse Opportunities: Existing functions/classes to leverage
 - Redundancy: Repeated checks and validations
@@ -77,6 +86,7 @@ docker run --rm -it -v $(pwd):/repo \
 - Over-Engineering: Unnecessary complexity
 
 ### Security Mode (OWASP Top 10 Analysis)
+
 - Access Control: Missing authorization, privilege escalation
 - Cryptographic Failures: Hardcoded secrets, weak encryption
 - Injection: Command, SQL, Path Traversal, Code Injection
@@ -87,10 +97,13 @@ docker run --rm -it -v $(pwd):/repo \
 - Logging & Monitoring: Missing security logs
 - SSRF: Unvalidated URL requests
 
-**Key Feature**: Actively traces data flows from user input to dangerous sinks to confirm exploitability, not just pattern matching.
+**Key Feature**: Actively traces data flows from user input to dangerous sinks
+to confirm exploitability, not just pattern matching.
 
 ### Executive Summary (All Modes)
+
 Every review includes an auto-generated summary at the top:
+
 - Top 3-5 critical issues with locations
 - Issue counts by severity (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, ⚪ LOW)
 - Actionable recommendations
@@ -100,6 +113,7 @@ Disable with `--no-summary` for faster reviews.
 ## Configuration
 
 ### Anthropic API
+
 ```bash
 -e MODEL_PROVIDER=anthropic
 -e ANTHROPIC_API_KEY=sk-ant-your-api-key
@@ -107,6 +121,7 @@ Disable with `--no-summary` for faster reviews.
 ```
 
 ### AWS Bedrock (default)
+
 ```bash
 -e AWS_ACCESS_KEY_ID=your_key
 -e AWS_SECRET_ACCESS_KEY=your_secret
@@ -115,6 +130,7 @@ Disable with `--no-summary` for faster reviews.
 ```
 
 ### Ollama (local models)
+
 ```bash
 -e MODEL_PROVIDER=ollama
 -e OLLAMA_BASE_URL=http://host.docker.internal:11434
@@ -123,7 +139,8 @@ Disable with `--no-summary` for faster reviews.
 
 ## Command-Line Options
 
-- `--mode`: Review mode (`full`, `summary`, `spaghetti`, `security`) - default: `full`
+- `--mode`: Review mode (`full`, `summary`, `spaghetti`, `security`) - default:
+  `full`
 - `--target-branch`: Branch to compare against - default: `main`
 - `--output`: Output file path or directory
 - `--repo-path`: Path to git repository - default: `/repo`
