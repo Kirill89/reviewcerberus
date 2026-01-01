@@ -40,6 +40,8 @@ RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "200"))
 
 # Context management
 CONTEXT_COMPACT_THRESHOLD = int(os.getenv("CONTEXT_COMPACT_THRESHOLD", "140000"))
+# Expert mode only: Maximum context window for token warning injection
+MAX_CONTEXT_WINDOW = int(os.getenv("MAX_CONTEXT_WINDOW", "200000"))
 
 # Validate required credentials based on provider
 if MODEL_PROVIDER == "bedrock":

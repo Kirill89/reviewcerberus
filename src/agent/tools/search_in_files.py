@@ -102,12 +102,24 @@ def _search_in_files_impl(
 def search_in_files(
     runtime: ToolRuntime[Context],
     pattern: str,
+    reason: str,
     file_pattern: str | None = None,
     context_lines: int = 2,
     max_results: int = 50,
     max_line_length: int = 300,
 ) -> list[SearchMatch] | ToolMessage:
     """Search for text patterns across files in the repository.
+
+    Args:
+        pattern: The text or regex pattern to search for
+        reason: Explanation of why you are searching for this pattern (e.g., "Looking for usages of getUserById function")
+        file_pattern: Optional glob pattern to restrict search to specific files (e.g., "*.py")
+        context_lines: Number of context lines to show around each match. Defaults to 2.
+        max_results: Maximum number of results to return. Defaults to 50.
+        max_line_length: Maximum length for each line. Longer lines will be truncated. Defaults to 300.
+
+    Returns:
+        List of search matches with file path, line number, and context.
 
     Lines longer than max_line_length characters will be truncated to prevent
     massive outputs from minified code or generated files.
@@ -116,6 +128,7 @@ def search_in_files(
         print(f"🔧 search_in_files: '{pattern}' in {file_pattern}")
     else:
         print(f"🔧 search_in_files: '{pattern}'")
+    print(f"   Reason: {reason}")
     try:
         return _search_in_files_impl(
             runtime.context.repo_path,

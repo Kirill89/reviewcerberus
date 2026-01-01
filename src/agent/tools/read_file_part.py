@@ -21,7 +21,7 @@ def _read_file_part_impl(
     repo_path: str,
     file_path: str,
     start_line: int = 1,
-    num_lines: int = 50,
+    num_lines: int = 100,
     max_line_length: int = 500,
 ) -> FileContent:
     result = subprocess.run(
@@ -61,30 +61,33 @@ def _read_file_part_impl(
 def read_file_part(
     runtime: ToolRuntime[Context],
     file_path: str,
+    reason: str,
     start_line: int = 1,
-    num_lines: int = 50,
+    num_lines: int = 100,
     max_line_length: int = 500,
 ) -> FileContent | ToolMessage:
     """Read a portion of a file starting from a specific line.
 
     Args:
         file_path: Path to the file relative to repository root
+        reason: Explanation of why you are reading this file (e.g., "Checking for null handling in getUserById")
         start_line: Line number to start reading from (1-indexed). Defaults to 1 (beginning of file).
-        num_lines: Number of lines to read. Defaults to 50. Will read fewer lines if near end of file.
+        num_lines: Number of lines to read. Defaults to 100. Will read fewer lines if near end of file.
         max_line_length: Maximum length for each line. Lines longer than this will be truncated. Defaults to 500.
 
     Returns:
         File content with line numbers for the specified range.
 
     Examples:
-        - read_file_part("src/main.py", 100) - reads 50 lines starting from line 100
-        - read_file_part("src/main.py", 100, 20) - reads 20 lines starting from line 100
-        - read_file_part("src/main.py") - reads first 50 lines of the file
+        - read_file_part("src/main.py", "Looking for error handling", 100) - reads 100 lines starting from line 100
+        - read_file_part("src/main.py", "Checking imports", 1, 20) - reads 20 lines starting from line 1
+        - read_file_part("src/main.py", "Reviewing entire file") - reads first 100 lines of the file
 
     Lines longer than max_line_length will be truncated to prevent massive outputs
     from minified code or generated files.
     """
-    print(f"🔧 read_file_part: {file_path} (from line {start_line}, {num_lines} lines)")
+    print(f"🔧 read_file_part: {file_path} (line {start_line}, {num_lines} lines)")
+    print(f"   Reason: {reason}")
 
     try:
         return _read_file_part_impl(

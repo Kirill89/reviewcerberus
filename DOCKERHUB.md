@@ -18,8 +18,8 @@ directory.
 
 ## Key Features
 
-- **Four Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti
-  (code quality), Security (OWASP Top 10)
+- **Five Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti
+  (code quality), Security (OWASP Top 10), Expert (two-stage with validation)
 - **Executive Summaries**: Auto-generated highlights of critical issues
 - **Multi-Provider**: AWS Bedrock or Anthropic API
 - **Smart Analysis**: Token-efficient tools with prompt caching
@@ -100,15 +100,25 @@ docker run --rm -it -v $(pwd):/repo \
 **Key Feature**: Actively traces data flows from user input to dangerous sinks
 to confirm exploitability, not just pattern matching.
 
-### Executive Summary (All Modes)
+### Expert Mode (Two-Stage Review with Validation)
 
-Every review includes an auto-generated summary at the top:
+Advanced review system that combines comprehensive analysis with validation:
+
+- **Stage 1**: Deep analysis to identify potential issues
+- **Stage 2**: Validates each finding to filter false positives
+- **Only confirmed findings** appear in final report
+- **Token usage monitoring** with context window warnings
+- **Best For**: High-stakes reviews where accuracy matters
+
+### Executive Summary (Most Modes)
+
+Most review modes include an auto-generated summary at the top:
 
 - Top 3-5 critical issues with locations
 - Issue counts by severity (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, ⚪ LOW)
 - Actionable recommendations
 
-Disable with `--no-summary` for faster reviews.
+Disable with `--no-summary` for faster reviews (not available in expert mode).
 
 ## Configuration
 
@@ -139,8 +149,8 @@ Disable with `--no-summary` for faster reviews.
 
 ## Command-Line Options
 
-- `--mode`: Review mode (`full`, `summary`, `spaghetti`, `security`) - default:
-  `full`
+- `--mode`: Review mode (`full`, `summary`, `spaghetti`, `security`, `expert`) -
+  default: `full`
 - `--target-branch`: Branch to compare against - default: `main`
 - `--output`: Output file path or directory
 - `--repo-path`: Path to git repository - default: `/repo`

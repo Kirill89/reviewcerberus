@@ -78,6 +78,26 @@ Read specific lines from a file (or entire file).
 
 ______________________________________________________________________
 
+## Tool 4a: read_file (Expert Mode Only)
+
+Read entire file with duplicate and consecutive read tracking.
+
+**Parameters:**
+
+- `file_path`: Relative path from repo root
+
+**Returns:** FileContent object with:
+
+- file_path, content (with line numbers), total_lines
+
+**Features:**
+
+- Tracks duplicate reads and warns after threshold
+- Warns about consecutive reads of the same file
+- Helps prevent redundant file access patterns
+
+______________________________________________________________________
+
 ## Tool 5: search_in_files
 
 Search for text patterns across repository files.
@@ -92,6 +112,25 @@ Search for text patterns across repository files.
 **Returns:** List of SearchMatch objects with:
 
 - file_path, line_number, line_content, match_context
+
+______________________________________________________________________
+
+## Tool 5a: search_in_files_locations (Expert Mode Only)
+
+Search for text patterns, returning structured location objects.
+
+**Parameters:**
+
+- `pattern`: Text or regex pattern to search
+- `file_pattern`: Glob pattern to limit files (optional)
+- `max_results`: Maximum matches to return (default: 20)
+
+**Returns:** List of Location objects with:
+
+- filepath, line_start, line_end
+
+**Use Case:** Optimized for expert mode validation where only location
+references are needed, not full match context.
 
 ______________________________________________________________________
 
@@ -110,6 +149,8 @@ ______________________________________________________________________
 
 ## Usage Strategy
 
+### Standard Modes (full, summary, spaghetti, security)
+
 1. Review `changed_files` in context for overview
 2. Call `get_commit_messages` to understand intent
 3. For each important file:
@@ -117,6 +158,19 @@ ______________________________________________________________________
    - Call `read_file_part` for additional context
    - Call `search_in_files` to find related code
 4. Generate comprehensive review
+
+### Expert Mode
+
+1. **Stage 1 (Primary Review)**:
+   - Review `changed_files` in context
+   - Use `read_file` for full file access (with tracking)
+   - Use `search_in_files_locations` for location-only searches
+   - Generate structured findings with severity levels
+2. **Stage 2 (Validation)**:
+   - Receive findings from Stage 1
+   - Use same tools to verify each finding
+   - Confirm or reject with validation reasoning
+   - Only confirmed findings appear in final output
 
 ## Error Handling
 

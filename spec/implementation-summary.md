@@ -8,10 +8,12 @@ principles.
 
 **Key Features:**
 
-- Three specialized review modes: full, summary, and spaghetti (code quality)
-- Auto-generated executive summaries for all reviews
+- Five specialized review modes: full, summary, spaghetti (code quality),
+  security (OWASP Top 10), and expert (two-stage with validation)
+- Auto-generated executive summaries for most reviews
 - Multi-provider support (AWS Bedrock, Anthropic API, and Ollama)
 - Automatic context management for large PRs
+- Expert mode: two-stage review process that filters false positives
 
 **Tech Stack:**
 
@@ -156,7 +158,7 @@ code/generated files:
 
 ### 11. Review Modes
 
-Three specialized review modes available:
+Five specialized review modes available:
 
 **Full Mode (default):**
 
@@ -178,17 +180,35 @@ Three specialized review modes available:
   code, over-engineering
 - Suggests: library usage, abstraction opportunities, refactoring
 
+**Security Mode:**
+
+- OWASP Top 10 security analysis
+- Data flow tracing from user input to dangerous sinks
+- Exploitability assessment for each finding
+- Comprehensive security posture overview
+
+**Expert Mode:**
+
+- Two-stage review process (primary + validation)
+- Stage 1: Comprehensive analysis identifies potential findings
+- Stage 2: Validation agent confirms or rejects each finding
+- Only confirmed findings appear in final report
+- Token usage monitoring with context window warnings
+- Smart tool tracking (duplicate reads, consecutive reads)
+- Structured output with Pydantic schemas
+- Best for high-stakes reviews requiring high accuracy
+
 ### 12. Executive Summary
 
-All reviews automatically include an AI-generated executive summary prepended to
-the top:
+Most reviews automatically include an AI-generated executive summary prepended
+to the top:
 
 **Architecture:**
 
 - Post-processing step after main review generation
 - Simple LLM call (fast, no agent overhead)
 - Uses conversational prompt validated through user testing
-- Formatted with `_format_review_content()` for uniform markdown
+- Formatted with `format_review_content()` for uniform markdown
 
 **Summary Contains:**
 
@@ -199,9 +219,94 @@ the top:
 
 **Configuration:**
 
-- Enabled by default for all modes
+- Enabled by default for full, summary, spaghetti, and security modes
 - Disable with `--no-summary` flag for faster reviews
+- Not available in expert mode (replaced by structured severity groupings)
 - Token usage tracked and merged with main review
+
+### 13. Expert Mode Architecture
+
+Comprehensive two-stage review system with validation and false positive
+filtering:
+
+**Components:**
+
+- `src/agent/expert/runner.py`: Orchestrates two-stage review process
+- `src/agent/expert/primary_agent.py`: Stage 1 - comprehensive analysis
+- `src/agent/expert/validation_agent.py`: Stage 2 - finding validation
+- `src/agent/expert/schemas.py`: Pydantic models for structured output
+- `src/agent/expert/renderer.py`: Markdown formatting for expert reviews
+- `src/agent/expert/agent_factory.py`: Agent creation with consistent config
+- `src/agent/expert/token_warning_injector.py`: Token usage monitoring
+
+**New Tools:**
+
+- `src/agent/tools/read_file.py`: Full file read with tracking (duplicate/
+  consecutive read warnings)
+- `src/agent/tools/search_in_files_locations.py`: Search returning Location
+  objects
+
+**Schemas (Pydantic):**
+
+- `PrimaryReviewOutput`: Stage 1 output with ChangesSummary and ReviewFinding
+  list
+- `ReviewFinding`: Title, description, location list, recommendation, severity
+- `ValidationOutput`: Stage 2 output with ValidatedReviewFinding list
+- `ValidatedReviewFinding`: Extends ReviewFinding with confirmed flag and
+  validation_reason
+- `ExpertReviewResult`: Combined result with statistics and confirmed findings
+- `Severity`: Enum (CRITICAL, HIGH, MEDIUM, LOW)
+- `Location`: Code location (filepath, line_start, line_end)
+
+**Workflow:**
+
+1. **Stage 1 (Primary Review)**:
+   - Agent receives context with changed files
+   - Uses specialized tools (read_file, search_in_files_locations, etc.)
+   - Generates structured PrimaryReviewOutput with findings
+   - Token warning injector monitors usage and warns at thresholds (40%, 50%,
+     60%, 70%, 80%, 85%, 90%, 95%)
+   - If no findings, skip Stage 2
+2. **Stage 2 (Validation)**:
+   - Agent receives Stage 1 findings
+   - Validates each finding using same tools
+   - Confirms or rejects with reasoning
+   - Generates ValidationOutput with validated findings
+3. **Rendering**:
+   - Filters to only confirmed findings
+   - Groups by severity (CRITICAL → HIGH → MEDIUM → LOW)
+   - Formats locations as file:line_start-line_end
+   - Shows token usage for both stages
+   - Logs statistics (confirmed/filtered counts) to console
+
+**Key Features:**
+
+- **False Positive Filtering**: Only validated findings appear in output
+- **Token Monitoring**: Tracks cumulative token usage with configurable
+  MAX_CONTEXT_WINDOW
+- **Smart Tool Usage**: Warns about duplicate/consecutive reads to prevent
+  inefficiency
+- **Structured Output**: Pydantic schemas ensure consistent data structure
+- **Graceful Degradation**: If Stage 2 fails, entire review fails (no partial
+  results)
+- **Agent Factory**: Centralizes agent creation with TokenWarningInjector
+  middleware
+
+**Testing:**
+
+- `tests/agent/expert/test_runner.py`: End-to-end tests with mocked LLM
+  responses
+- `tests/agent/expert/test_token_warning_injector.py`: Token tracking and
+  warning tests
+- `tests/agent/tools/test_read_file.py`: Read tracking tests
+- `tests/agent/tools/test_search_in_files_locations.py`: Location search tests
+- `tests/test_token_usage.py`: TokenUsage dataclass tests
+
+**Configuration:**
+
+- `MAX_CONTEXT_WINDOW`: Expert mode only, controls token warning thresholds
+  (default: 200000)
+- No support for `--instructions` or `--no-summary` flags in expert mode
 
 ______________________________________________________________________
 
@@ -221,20 +326,49 @@ reviewcerberus/
 │       │   ├── bedrock_caching.py       # Bedrock caching wrapper
 │       │   ├── anthropic.py             # Anthropic provider
 │       │   └── ollama.py                # Ollama provider
+│       ├── expert/                      # Expert mode two-stage review
+│       │   ├── __init__.py              # Expert mode exports
+│       │   ├── runner.py                # Two-stage orchestrator
+│       │   ├── primary_agent.py         # Stage 1: Primary review
+│       │   ├── validation_agent.py      # Stage 2: Validation
+│       │   ├── schemas.py               # Pydantic models
+│       │   ├── renderer.py              # Markdown rendering
+│       │   ├── agent_factory.py         # Agent creation helper
+│       │   └── token_warning_injector.py # Token monitoring
 │       ├── prompts/                     # Review prompts
 │       │   ├── __init__.py              # Prompt loader
 │       │   ├── full_review.md           # Full review mode prompt
 │       │   ├── summary_mode.md          # Summary mode prompt
 │       │   ├── spaghetti_code_detection.md  # Spaghetti mode prompt
+│       │   ├── security_review.md       # Security mode prompt
 │       │   ├── executive_summary.md     # Executive summary prompt
-│       │   └── context_summary.md       # Context compaction prompt
+│       │   ├── context_summary.md       # Context compaction prompt
+│       │   ├── expert_primary_review.md # Expert Stage 1 prompt
+│       │   ├── expert_validation.md     # Expert Stage 2 prompt
+│       │   ├── token_warning.md         # Token warning message
+│       │   ├── duplicate_read_warning.md    # Duplicate read warning
+│       │   └── consecutive_read_warning.md  # Consecutive read warning
 │       ├── schema.py                    # Context model
+│       ├── token_usage.py               # TokenUsage dataclass
+│       ├── formatter.py                 # Markdown formatting utilities
 │       ├── runner.py                    # Agent runner + summarize_review()
 │       ├── progress_callback_handler.py # Progress display
-│       └── tools/                       # 6 review tools
+│       └── tools/                       # 8 review tools
+│           ├── changed_files.py         # List changed files
+│           ├── get_commit_messages.py   # Get commit history
+│           ├── diff_file.py             # Show git diff
+│           ├── read_file_part.py        # Read file with line ranges
+│           ├── read_file.py             # Read full file (expert)
+│           ├── list_files.py            # List repository files
+│           ├── search_in_files.py       # Search with context
+│           └── search_in_files_locations.py  # Search locations (expert)
 │
 ├── tests/                         # Integration tests
-│   └── agent/tools/               # Test per tool
+│   └── agent/
+│       ├── expert/                # Expert mode tests
+│       │   ├── test_runner.py     # End-to-end tests
+│       │   └── test_token_warning_injector.py
+│       └── tools/                 # Test per tool
 │
 └── spec/                          # Documentation
     ├── project-description.md
@@ -246,12 +380,20 @@ ______________________________________________________________________
 
 ## Implemented Tools
 
+**Standard Tools (all modes):**
+
 1. **changed_files** - List changed files
 2. **get_commit_messages** - Get commit history
 3. **diff_file** - Show git diff with pagination
-4. **read_file_part** - Read file content
-5. **search_in_files** - Search patterns
+4. **read_file_part** - Read file content with line ranges
+5. **search_in_files** - Search patterns with context
 6. **list_files** - List repository files
+
+**Expert Mode Tools:**
+
+7. **read_file** - Read entire file with duplicate/consecutive read tracking
+8. **search_in_files_locations** - Search returning Location objects (no
+   context)
 
 ______________________________________________________________________
 
@@ -415,6 +557,8 @@ poetry run reviewcerberus
 poetry run reviewcerberus --mode full       # Comprehensive review
 poetry run reviewcerberus --mode summary    # High-level overview
 poetry run reviewcerberus --mode spaghetti  # Code quality/redundancy
+poetry run reviewcerberus --mode security   # OWASP Top 10 security
+poetry run reviewcerberus --mode expert     # Two-stage with validation
 
 # Specify target branch
 poetry run reviewcerberus --target-branch develop

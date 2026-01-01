@@ -4,10 +4,11 @@
 
 A minimalist CLI tool that performs automated code reviews using AI models. The
 tool analyzes Git branch differences and generates review reports in Markdown
-format. Supports three specialized review modes: comprehensive full reviews,
-high-level summaries, and code quality/redundancy detection (spaghetti mode).
-All reviews include an auto-generated executive summary for quick focus on
-critical issues.
+format. Supports five specialized review modes: comprehensive full reviews,
+high-level summaries, code quality/redundancy detection (spaghetti mode),
+security analysis (OWASP Top 10), and expert mode (two-stage review with
+validation). Most reviews include an auto-generated executive summary for quick
+focus on critical issues.
 
 ## Core Features
 
@@ -15,19 +16,22 @@ critical issues.
 
 Simple command-line interface with sensible defaults:
 
-- **Review Mode**: `full` (default), `summary`, `spaghetti`, or `security`
+- **Review Mode**: `full` (default), `summary`, `spaghetti`, `security`, or
+  `expert`
   - `full`: Comprehensive code review with detailed analysis
   - `summary`: High-level overview of changes
   - `spaghetti`: Code quality and redundancy detection (duplication, missed
     reuse opportunities, dead code, over-engineering)
   - `security`: OWASP Top 10 security analysis with data flow tracing
+  - `expert`: Two-stage review (primary analysis + validation) that filters
+    false positives
 - **Target Branch**: `main` (default) or user-specified (supports branch names
   and commit hashes)
 - **Output File**: `review_{current_branch_name}.md` (default) or user-specified
 - **Additional Instructions**: Optional markdown file with custom review
-  guidelines
-- **Executive Summary**: Auto-generated summary prepended to all reviews
-  (disable with `--no-summary`)
+  guidelines (not supported in expert mode)
+- **Executive Summary**: Auto-generated summary prepended to most reviews
+  (disable with `--no-summary`, not available in expert mode)
 
 The tool always reviews the currently checked out branch against the target
 branch.
@@ -53,11 +57,15 @@ The AI agent will have access to the following tools to perform code reviews:
 
 1. **read_file_part**: Read specific sections of files (with line numbers) to
    reduce token usage
-2. **diff_file**: Show Git diff for a specific file (supports partial diffs to
+2. **read_file**: Read entire file with duplicate/consecutive read tracking
+   (expert mode)
+3. **diff_file**: Show Git diff for a specific file (supports partial diffs to
    reduce tokens)
-3. **list_files**: List files in the repository or specific directories
-4. **search_in_files**: Search for specific patterns or text across files
-5. **get_commit_messages**: Get commit messages to understand change intent
+4. **list_files**: List files in the repository or specific directories
+5. **search_in_files**: Search for specific patterns or text across files
+6. **search_in_files_locations**: Search returning location objects (expert
+   mode)
+7. **get_commit_messages**: Get commit messages to understand change intent
 
 **Note**: The list of changed files is provided directly in the agent's context
 at initialization, eliminating the need for a separate tool call.
@@ -162,6 +170,27 @@ Markdown file containing:
 - Prioritized security issues by severity (CRITICAL, HIGH, MEDIUM, LOW)
 - Specific remediation guidance with code examples
 - Exploitability assessment for each finding
+
+### Expert Review Mode
+
+Markdown file containing:
+
+- Changes summary (title and description)
+- Findings grouped by severity (CRITICAL, HIGH, MEDIUM, LOW)
+- Each finding includes:
+  - Title and description
+  - Code location (file:line_start-line_end)
+  - Recommendation
+  - Validation status (only confirmed findings shown)
+- Token usage statistics for both stages
+- Finding statistics (confirmed/filtered counts by severity)
+
+**Output characteristics:**
+
+- No executive summary (replaced by structured severity groupings)
+- Only validated, confirmed findings appear in markdown
+- Filtered findings shown in console statistics only
+- Clear separation between primary and validation stages
 
 ## Technology Stack
 

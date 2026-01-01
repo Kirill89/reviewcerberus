@@ -45,18 +45,27 @@ def _list_files_impl(
 
 @tool
 def list_files(
-    runtime: ToolRuntime[Context], directory: str = ".", pattern: str | None = None
+    runtime: ToolRuntime[Context],
+    reason: str,
+    directory: str = ".",
+    pattern: str | None = None,
 ) -> list[str] | ToolMessage:
     """List files in the repository or a specific directory.
 
-    Returns up to 100 files to avoid context explosion. If the directory
-    contains more files, results will be truncated with a warning message
-    as the last item in the list.
+    Args:
+        reason: Explanation of why you are listing files (e.g., "Finding all Python test files to check coverage")
+        directory: Directory path relative to repository root. Defaults to "." (root).
+        pattern: Optional glob pattern to filter files (e.g., "*.py", "test_*.js"). Defaults to None (all files).
+
+    Returns:
+        List of file paths matching the criteria. Up to 100 files to avoid context explosion.
+        If more files exist, results will be truncated with a warning message as the last item.
     """
     if pattern:
         print(f"🔧 list_files: {directory} ({pattern})")
     else:
         print(f"🔧 list_files: {directory}")
+    print(f"   Reason: {reason}")
     try:
         return _list_files_impl(runtime.context.repo_path, directory, pattern)
     except Exception as e:

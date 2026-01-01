@@ -4,10 +4,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+from .agent.expert import run_expert_review
 from .agent.runner import run_review, summarize_review
-from .agent.schema import Context
 from .agent.tools.changed_files import FileChange, _changed_files_impl
-from .config import MODEL_NAME, MODEL_PROVIDER
+from .config import MAX_CONTEXT_WINDOW, MODEL_NAME, MODEL_PROVIDER
 
 
 def get_current_branch(repo_path: str) -> str:
@@ -51,9 +51,9 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--mode",
-        choices=["full", "summary", "spaghetti", "security"],
+        choices=["full", "summary", "spaghetti", "security", "expert"],
         default="full",
-        help="Review mode: full (comprehensive review), summary (high-level overview), spaghetti (code quality and redundancy detection), or security (OWASP Top 10 security analysis)",
+        help="Review mode: full (comprehensive review), summary (high-level overview), spaghetti (code quality and redundancy detection), security (OWASP Top 10 security analysis), or expert (two-stage review with validation)",
     )
     parser.add_argument(
         "--no-summary",
@@ -143,12 +143,6 @@ def main() -> None:
 
     print_changed_files_summary(changed_files)
 
-    context = Context(
-        repo_path=repo_path,
-        target_branch=args.target_branch,
-        changed_files=changed_files,
-    )
-
     print("Starting code review...")
     print()
 
@@ -161,31 +155,43 @@ def main() -> None:
         except Exception as e:
             print(f"Warning: Could not read instructions file: {e}", file=sys.stderr)
 
-    review_content, token_usage = run_review(
-        context, mode=args.mode, additional_instructions=additional_instructions
-    )
-
-    # Add executive summary if requested
-    if not args.no_summary:
-        review_content, summary_usage = summarize_review(review_content)
-        # Merge token usage
-        if token_usage and summary_usage:
-            token_usage["total_input_tokens"] += summary_usage["input_tokens"]
-            token_usage["output_tokens"] += summary_usage["output_tokens"]
-            token_usage["total_tokens"] = (
-                token_usage["total_input_tokens"] + token_usage["output_tokens"]
+    # Expert mode uses a different runner
+    if args.mode == "expert":
+        if args.instructions:
+            print(
+                "Warning: --instructions not supported in expert mode", file=sys.stderr
             )
+        review_content, token_usage = run_expert_review(
+            repo_path=repo_path,
+            target_branch=args.target_branch,
+            changed_files=changed_files,
+            show_progress=True,
+            max_context_window=MAX_CONTEXT_WINDOW,
+        )
+    else:
+        review_content, token_usage = run_review(
+            repo_path=repo_path,
+            target_branch=args.target_branch,
+            changed_files=changed_files,
+            mode=args.mode,
+            additional_instructions=additional_instructions,
+        )
+
+        # Add executive summary if requested (not for expert mode)
+        if not args.no_summary:
+            review_content, summary_usage = summarize_review(review_content)
+            # Merge token usage
+            if token_usage and summary_usage:
+                token_usage = token_usage + summary_usage
 
     print()
     Path(output_file).write_text(review_content)
     print(f"✓ Review completed and saved to: {output_file}")
 
-    if token_usage:
+    # Token usage is already printed by expert mode renderer
+    if token_usage and args.mode != "expert":
         print()
-        print("Token Usage:")
-        print(f"  Input tokens:  {token_usage['total_input_tokens']:,}")
-        print(f"  Output tokens: {token_usage['output_tokens']:,}")
-        print(f"  Total tokens:  {token_usage['total_tokens']:,}")
+        token_usage.print()
 
 
 if __name__ == "__main__":

@@ -9,8 +9,8 @@ comprehensive review reports with executive summaries.
 
 ## Key Features
 
-- **Three Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti
-  (code quality)
+- **Five Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti
+  (code quality), Security (OWASP), Expert (two-stage with validation)
 - **Executive Summaries**: Auto-generated highlights of critical issues
 - **Multi-Provider**: AWS Bedrock or Anthropic API
 - **Smart Analysis**: Token-efficient tools with prompt caching
@@ -50,6 +50,7 @@ poetry run reviewcerberus --mode full       # Detailed analysis
 poetry run reviewcerberus --mode summary    # High-level overview
 poetry run reviewcerberus --mode spaghetti  # Code quality focus
 poetry run reviewcerberus --mode security   # Security analysis (OWASP Top 10)
+poetry run reviewcerberus --mode expert     # Two-stage review with validation
 
 # Custom target branch
 poetry run reviewcerberus --target-branch develop
@@ -134,15 +135,37 @@ Deep security analysis with data flow tracing:
 **Key Feature**: The agent actively traces data flows from user input to
 dangerous sinks to confirm exploitability, not just pattern matching.
 
-### Executive Summary (All Modes)
+### 5. Expert Mode (Two-Stage Review with Validation)
 
-Every review includes an auto-generated summary at the top:
+Advanced review system that combines comprehensive analysis with validation:
+
+- **Stage 1 - Primary Review**: Deep analysis to identify potential issues
+  - Logic errors, security concerns, performance bottlenecks
+  - Code quality, side effects, testing gaps
+  - Structured output with severity levels (CRITICAL, HIGH, MEDIUM, LOW)
+- **Stage 2 - Validation**: Each finding is validated to filter false positives
+  - Confirms or rejects findings based on evidence
+  - Provides validation reasoning
+  - Only confirmed findings appear in final report
+- **Token Usage Monitoring**: Tracks context window usage with warnings at
+  thresholds
+- **Smart Tool Usage**: Warns about duplicate reads and redundant searches
+- **Best For**: High-stakes reviews where accuracy matters more than speed
+
+**Output Format**: Organized markdown with findings grouped by severity, each
+with location, description, and recommendation.
+
+**Note**: Expert mode does not support `--instructions` or `--no-summary` flags.
+
+### Executive Summary (Most Modes)
+
+Most review modes include an auto-generated summary at the top:
 
 - Top 3-5 critical issues with locations
 - Issue counts by severity (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, ⚪ LOW)
 - Actionable recommendations
 
-Disable with `--no-summary` for faster reviews.
+Disable with `--no-summary` for faster reviews (not available in expert mode).
 
 ______________________________________________________________________
 
@@ -246,8 +269,10 @@ docker run --rm -it -v $(pwd):/repo \
 ### Optional Settings
 
 ```bash
-MAX_OUTPUT_TOKENS=8192      # Maximum tokens in response
-RECURSION_LIMIT=200         # Agent recursion limit
+MAX_OUTPUT_TOKENS=8192        # Maximum tokens in response
+RECURSION_LIMIT=200           # Agent recursion limit
+CONTEXT_COMPACT_THRESHOLD=140000   # Context compaction threshold
+MAX_CONTEXT_WINDOW=200000     # Expert mode only: Max context window for token warnings
 ```
 
 ### Custom Review Prompts
@@ -257,6 +282,9 @@ Customize prompts in `src/agent/prompts/`:
 - `full_review.md` - Full review mode
 - `summary_mode.md` - Summary mode
 - `spaghetti_code_detection.md` - Spaghetti mode
+- `security_review.md` - Security mode
+- `expert_primary_review.md` - Expert mode Stage 1
+- `expert_validation.md` - Expert mode Stage 2
 - `executive_summary.md` - Executive summary generation
 - `context_summary.md` - Context compaction for large PRs
 
@@ -302,24 +330,8 @@ make docker-build           # Build locally
 make docker-build-push      # Build and push (multi-platform)
 ```
 
-Version is auto-read from `pyproject.toml`. See [DOCKER.md](DOCKER.md) for
-details.
-
-### Project Structure
-
-```
-src/
-├── config.py                        # Configuration
-├── main.py                          # CLI entry point
-└── agent/
-    ├── agent.py                     # Agent setup
-    ├── model.py                     # Model initialization
-    ├── runner.py                    # Review execution + summarization
-    ├── prompts/                     # Review prompts (5 files)
-    ├── schema.py                    # Data models
-    ├── progress_callback_handler.py # Progress display
-    └── tools/                       # 6 review tools
-```
+Version is auto-read from `pyproject.toml`. See [DOCKERHUB.md](DOCKERHUB.md) for
+Docker usage details.
 
 ### Code Quality Standards
 
