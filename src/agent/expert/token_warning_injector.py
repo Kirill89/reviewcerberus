@@ -21,14 +21,17 @@ class TokenWarningInjector(BaseCallbackHandler, AgentMiddleware):
     Works as both a callback (to track tokens) and middleware (to inject warnings).
     """
 
-    def __init__(self, max_context_window: int = 200000):
+    def __init__(self, max_context_window: int = 200000, recursion_limit: int = 200):
         """Initialize token warning injector.
 
         Args:
             max_context_window: Maximum context window size in tokens. Defaults to 200k.
+            recursion_limit: Maximum agent steps (recursion limit). Defaults to 200.
         """
         self.max_context_window = max_context_window
+        self.recursion_limit = recursion_limit
         self.total_tokens = 0
+        self.step_count = 0
 
         # Warning thresholds as percentages of max context window
         self.warning_thresholds = [
@@ -44,9 +47,11 @@ class TokenWarningInjector(BaseCallbackHandler, AgentMiddleware):
 
         # Track which warnings have been sent to avoid duplicates
         self.warnings_sent: set[float] = set()
+        self.step_warnings_sent: set[int] = set()
 
-        # Load warning message template
+        # Load warning message templates
         self.warning_template = get_prompt("token_warning")
+        self.step_warning_template = get_prompt("step_warning")
 
     def on_llm_end(self, response: Any, **kwargs: Any) -> None:
         """Callback invoked after each LLM call to track token usage."""
@@ -82,7 +87,34 @@ class TokenWarningInjector(BaseCallbackHandler, AgentMiddleware):
         Returns:
             Dict with warning message to inject, or None if no warning needed
         """
-        # Check if we've crossed any warning thresholds
+        # Increment step counter
+        self.step_count += 1
+
+        # Check for step warnings (every 10 steps)
+        if self.step_count % 10 == 0 and self.step_count not in self.step_warnings_sent:
+            self.step_warnings_sent.add(self.step_count)
+            remaining_steps = self.recursion_limit - self.step_count
+
+            # Log step warning to console
+            print(f"⚠️  Step limit warning:")
+            print(
+                f"   Current step: {self.step_count} / {self.recursion_limit} (Remaining: {remaining_steps})"
+            )
+            print(f"   Injecting efficiency reminder to LLM...")
+
+            # Format step warning message
+            step_warning_content = self.step_warning_template.format(
+                current_step=self.step_count,
+                remaining_steps=remaining_steps,
+                recursion_limit=self.recursion_limit,
+            )
+
+            step_warning = HumanMessage(content=step_warning_content)
+
+            # Inject step warning message
+            return {"messages": [step_warning]}
+
+        # Check if we've crossed any token warning thresholds
         for threshold_pct in self.warning_thresholds:
             threshold_tokens = int(self.max_context_window * threshold_pct)
 

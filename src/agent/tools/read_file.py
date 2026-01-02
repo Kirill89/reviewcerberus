@@ -31,16 +31,23 @@ class ReadFile:
     - Each file can only be read once
     """
 
-    def __init__(self, max_lines: int = 1000, max_line_length: int = 500):
+    def __init__(
+        self,
+        max_lines: int = 1000,
+        max_line_length: int = 500,
+        max_output_chars: int = 40000,
+    ):
         """Initialize the tracker.
 
         Args:
             max_lines: Maximum number of lines to read before truncating file
             max_line_length: Maximum length for each line before truncating
+            max_output_chars: Maximum characters in final output (including line numbers)
         """
         self.accessed_files: set[str] = set()
         self.max_lines = max_lines
         self.max_line_length = max_line_length
+        self.max_output_chars = max_output_chars
 
     def _check_already_read(self, file_path: str) -> bool:
         """Check if file was already read.
@@ -101,6 +108,16 @@ class ReadFile:
                 f"Remaining {total_lines - self.max_lines} lines not shown to save tokens ...]"
             )
 
+        # Final character-based truncation if output is still too large
+        if len(content) > self.max_output_chars:
+            # Truncate to max chars and add message
+            content = content[: self.max_output_chars]
+            content += (
+                f"\n\n[... Output truncated at {self.max_output_chars} characters "
+                f"to prevent token explosion. Consider reading specific line ranges instead ...]"
+            )
+            was_truncated = True
+
         return FileContent(
             file_path=file_path,
             content=content,
@@ -135,10 +152,11 @@ class ReadFile:
             - Example: If you need to check 5 files, call read_file 5 times in parallel
             - This is MUCH faster than sequential reads
 
-            The tool automatically handles large files:
+            The tool automatically handles large files with three levels of truncation:
             - Lines longer than 500 chars are truncated with a message
             - Files longer than 1000 lines are truncated with a message
-            - You'll see the first 1000 lines, which is usually sufficient
+            - Output longer than 40,000 chars is truncated to prevent token explosion
+            - You'll see the first portion, which is usually sufficient
 
             Args:
                 file_path: Path to the file relative to repository root

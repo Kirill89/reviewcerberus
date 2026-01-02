@@ -5,11 +5,14 @@ from src.agent.expert.token_warning_injector import TokenWarningInjector
 
 def test_token_warning_injector_initialization() -> None:
     """Test TokenWarningInjector initialization."""
-    injector = TokenWarningInjector(max_context_window=100000)
+    injector = TokenWarningInjector(max_context_window=100000, recursion_limit=200)
 
     assert injector.max_context_window == 100000
+    assert injector.recursion_limit == 200
     assert injector.total_tokens == 0
+    assert injector.step_count == 0
     assert len(injector.warnings_sent) == 0
+    assert len(injector.step_warnings_sent) == 0
     assert len(injector.warning_thresholds) == 8
 
 
@@ -76,3 +79,32 @@ def test_token_warning_injector_no_warning_below_threshold() -> None:
 
     assert result is None
     assert len(injector.warnings_sent) == 0
+
+
+def test_token_warning_injector_step_warning_at_10th_step() -> None:
+    """Test TokenWarningInjector injects step warning at 10th step."""
+    injector = TokenWarningInjector(max_context_window=100000, recursion_limit=200)
+
+    # Mock state and runtime
+    state = Mock()
+    runtime = Mock()
+
+    # Call before_model 9 times - no step warning yet
+    for _ in range(9):
+        result = injector.before_model(state, runtime)
+        assert result is None
+
+    assert injector.step_count == 9
+
+    # 10th call should inject step warning
+    result = injector.before_model(state, runtime)
+
+    assert result is not None
+    assert "messages" in result
+    assert len(result["messages"]) == 1
+    assert 10 in injector.step_warnings_sent
+    assert injector.step_count == 10
+
+    # 11th call should not inject warning (only every 10 steps)
+    result = injector.before_model(state, runtime)
+    assert result is None

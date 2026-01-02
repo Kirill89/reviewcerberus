@@ -12,13 +12,14 @@ from ..tools import (
     list_files,
 )
 from ..tools.read_file import ReadFile
-from ..tools.search_in_files_locations import search_in_files_locations
+from ..tools.search_in_files_locations import SearchInFilesLocations
 from .token_warning_injector import TokenWarningInjector
 
 
 def create_expert_agent(
     token_warning_injector: TokenWarningInjector,
     read_tracker: ReadFile,
+    search_tracker: SearchInFilesLocations,
     system_prompt: str,
     context_schema: type,
     response_format: type,
@@ -28,6 +29,7 @@ def create_expert_agent(
     Args:
         token_warning_injector: TokenWarningInjector instance to use as middleware
         read_tracker: ReadFile instance to prevent duplicate reads
+        search_tracker: SearchInFilesLocations instance to prevent duplicate searches
         system_prompt: System prompt for the agent
         context_schema: Pydantic schema for agent context
         response_format: Pydantic schema for structured output
@@ -43,7 +45,7 @@ def create_expert_agent(
             get_commit_messages,
             diff_file,
             read_tracker.create_tool(),
-            search_in_files_locations,
+            search_tracker.create_tool(),
             list_files,
         ],
         context_schema=context_schema,

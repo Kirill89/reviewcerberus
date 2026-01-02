@@ -5,10 +5,12 @@ This agent performs comprehensive code review and generates structured findings.
 
 from typing import Any
 
+from ...config import RECURSION_LIMIT
 from ..prompts import get_prompt
 from ..token_usage import TokenUsage
 from ..tools.changed_files import FileChange
 from ..tools.read_file import ReadFile
+from ..tools.search_in_files_locations import SearchInFilesLocations
 from .agent_factory import create_expert_agent
 from .schemas import PrimaryReviewContext, PrimaryReviewOutput
 from .token_warning_injector import TokenWarningInjector
@@ -37,16 +39,22 @@ def run_primary_review(
         print("🔍 Stage 1: Performing initial review...")
 
     # Create token warning injector (used as both callback and middleware)
-    token_warning_injector = TokenWarningInjector(max_context_window=max_context_window)
+    token_warning_injector = TokenWarningInjector(
+        max_context_window=max_context_window, recursion_limit=RECURSION_LIMIT
+    )
 
     # Create read tracker to prevent duplicate file reads
     read_tracker = ReadFile()
+
+    # Create search tracker to prevent duplicate searches
+    search_tracker = SearchInFilesLocations()
 
     # Create agent
     system_prompt = get_prompt("expert_primary_review")
     agent = create_expert_agent(
         token_warning_injector=token_warning_injector,
         read_tracker=read_tracker,
+        search_tracker=search_tracker,
         system_prompt=system_prompt,
         context_schema=PrimaryReviewContext,
         response_format=PrimaryReviewOutput,
