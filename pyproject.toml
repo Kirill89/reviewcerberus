@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "reviewcerberus"
-version = "0.7.2"
+version = "0.7.3"
 description = "AI-powered code review tool for git branches"
 authors = ["Kirill <kirill89@gmail.com>"]
 readme = "README.md"
