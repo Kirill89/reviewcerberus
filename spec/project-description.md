@@ -47,20 +47,19 @@ branch.
 - Factory pattern architecture: Each provider in separate file, easy to extend
 - Framework: LangChain for AI orchestration
 
-## LangChain Tools
+## Context & Tools
 
-The AI agent will have access to the following tools to perform code reviews:
+The AI agent receives all review context upfront in the initial message:
 
-1. **read_file_part**: Read specific sections of files (with line numbers) to
-   reduce token usage
-2. **diff_file**: Show Git diff for a specific file (supports partial diffs to
-   reduce tokens)
-3. **list_files**: List files in the repository or specific directories
-4. **search_in_files**: Search for specific patterns or text across files
-5. **get_commit_messages**: Get commit messages to understand change intent
+- **Commits**: Full commit history between target branch and HEAD
+- **Changed files**: List of files with change types and line counts
+- **Diffs**: Complete diff content (truncated at 10k chars per file)
 
-**Note**: The list of changed files is provided directly in the agent's context
-at initialization, eliminating the need for a separate tool call.
+The agent also has access to these tools for additional analysis:
+
+1. **read_file_part**: Read specific sections of files (with line numbers)
+2. **list_files**: List files in the repository or specific directories
+3. **search_in_files**: Search for specific patterns or text across files
 
 ## Design Principles
 

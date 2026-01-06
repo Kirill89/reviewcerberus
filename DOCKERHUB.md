@@ -22,7 +22,7 @@ directory.
   (code quality), Security (OWASP Top 10)
 - **Executive Summaries**: Auto-generated highlights of critical issues
 - **Multi-Provider**: AWS Bedrock or Anthropic API
-- **Smart Analysis**: Token-efficient tools with prompt caching
+- **Smart Analysis**: Context provided upfront with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
 
 ## Usage Examples

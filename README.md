@@ -13,7 +13,7 @@ comprehensive review reports with executive summaries.
   (code quality)
 - **Executive Summaries**: Auto-generated highlights of critical issues
 - **Multi-Provider**: AWS Bedrock or Anthropic API
-- **Smart Analysis**: Token-efficient tools with prompt caching
+- **Smart Analysis**: Context provided upfront with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
 
 ______________________________________________________________________
@@ -149,13 +149,12 @@ ______________________________________________________________________
 ## How It Works
 
 1. **Detects** current git branch and repository
-2. **Compares** changes between current branch and target branch
-3. **Analyzes** using AI agent with specialized tools:
-   - List changed files
-   - Read file contents with line ranges
-   - View git diffs with pagination
-   - Search patterns across codebase
-   - Review commit messages
+2. **Collects** all context upfront: changed files, commit messages, and diffs
+3. **Analyzes** using AI agent with access to:
+   - Full diff context (truncated at 10k chars per file)
+   - File reading with line ranges
+   - Pattern search across codebase
+   - Directory listing
 4. **Generates** markdown review report with executive summary
 
 **Progress Display:**
@@ -173,8 +172,7 @@ Found 3 changed files:
 Starting code review...
 
 🤔 Thinking... ⏱️  3.0s
-🔧 changed_files
-🔧 diff_file: src/main.py
+🔧 read_file_part: src/main.py
 📊 Generating executive summary...
 
 ✓ Review completed: review_feature-branch.md
@@ -315,10 +313,12 @@ src/
     ├── agent.py                     # Agent setup
     ├── model.py                     # Model initialization
     ├── runner.py                    # Review execution + summarization
-    ├── prompts/                     # Review prompts (5 files)
+    ├── prompts/                     # Review prompts
     ├── schema.py                    # Data models
+    ├── git_utils/                   # Git operations (changed files, diffs, commits)
+    ├── formatting/                  # Context building and output formatting
     ├── progress_callback_handler.py # Progress display
-    └── tools/                       # 6 review tools
+    └── tools/                       # 3 review tools (read, search, list)
 ```
 
 ### Code Quality Standards

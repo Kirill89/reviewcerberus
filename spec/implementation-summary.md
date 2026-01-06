@@ -62,17 +62,18 @@ simultaneous). User selects via `MODEL_PROVIDER` env variable.
 Always review HEAD vs target branch. No source_branch parameter - matches
 natural git workflow (checkout branch → run review).
 
-### 3. Changed Files in Context
+### 3. Context Provided Upfront
 
-Computed once at initialization and provided directly to agent. Saves tool call
-overhead.
+All review context is computed once and included in the initial user message:
 
-### 4. Hunk-Based Diff Pagination
+- **Commits**: Full commit history between branches
+- **Changed files**: List with additions/deletions counts
+- **Diffs**: Complete diff for each file (truncated at 10k chars per file)
 
-Use semantic units (@@...@@ sections) instead of line numbers. Default 1-20
-hunks. Agent can paginate.
+This eliminates tool call overhead for basic context gathering. The agent can
+immediately start analyzing without needing to call tools for diffs or commits.
 
-### 5. Tool Architecture Pattern
+### 4. Tool Architecture Pattern
 
 ```python
 # Business logic (pure, testable)
@@ -228,13 +229,23 @@ reviewcerberus/
 │       │   ├── spaghetti_code_detection.md  # Spaghetti mode prompt
 │       │   ├── executive_summary.md     # Executive summary prompt
 │       │   └── context_summary.md       # Context compaction prompt
+│       ├── git_utils/                   # Git operations
+│       │   ├── get_changed_files.py     # List changed files
+│       │   ├── get_commit_messages.py   # Get commit history
+│       │   ├── get_file_diff.py         # Get file diffs
+│       │   └── types.py                 # FileChange, CommitInfo models
+│       ├── formatting/                  # Context and output formatting
+│       │   ├── build_review_context.py  # Build initial context message
+│       │   └── format_review_content.py # Format markdown output
 │       ├── schema.py                    # Context model
 │       ├── runner.py                    # Agent runner + summarize_review()
 │       ├── progress_callback_handler.py # Progress display
-│       └── tools/                       # 6 review tools
+│       └── tools/                       # 3 review tools
 │
 ├── tests/                         # Integration tests
-│   └── agent/tools/               # Test per tool
+│   └── agent/
+│       ├── git_utils/             # Tests for git utilities
+│       └── tools/                 # Tests for tools
 │
 └── spec/                          # Documentation
     ├── project-description.md
@@ -246,12 +257,12 @@ ______________________________________________________________________
 
 ## Implemented Tools
 
-1. **changed_files** - List changed files
-2. **get_commit_messages** - Get commit history
-3. **diff_file** - Show git diff with pagination
-4. **read_file_part** - Read file content
-5. **search_in_files** - Search patterns
-6. **list_files** - List repository files
+1. **read_file_part** - Read file content with line ranges
+2. **search_in_files** - Search patterns across codebase
+3. **list_files** - List repository files
+
+**Note**: Changed files, commit messages, and diffs are provided upfront in the
+initial context message, not via tools.
 
 ______________________________________________________________________
 
@@ -306,11 +317,11 @@ ______________________________________________________________________
 
 ## Token Efficiency
 
-- Changed files in context (not via tool)
-- Hunk-based pagination (default 20)
-- Line range reading
+- All context (commits, files, diffs) provided upfront in initial message
+- Diff truncation at 10k characters per file (configurable via
+  MAX_DIFF_PER_FILE)
+- Line range reading for additional file context
 - Limited search results (default 50)
-- Configurable context lines
 - Prompt caching enabled
 
 ______________________________________________________________________
@@ -333,9 +344,10 @@ ______________________________________________________________________
 
 1. Implement `_tool_name_impl` (business logic - pure, no logging)
 2. Add `@tool` wrapper (logging + error handling)
-3. Create test
+3. Create test in tests/agent/tools/
 4. Export from tools/__init__.py
-5. Update tools-specification.md
+5. Register in agent.py tools list
+6. Update spec/tools-specification.md
 
 ### Code Style
 
