@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 from .agent.runner import run_review, summarize_review
-from .agent.schema import Context
 from .agent.tools.changed_files import FileChange, _changed_files_impl
 from .config import MODEL_NAME, MODEL_PROVIDER
 
@@ -143,12 +142,6 @@ def main() -> None:
 
     print_changed_files_summary(changed_files)
 
-    context = Context(
-        repo_path=repo_path,
-        target_branch=args.target_branch,
-        changed_files=changed_files,
-    )
-
     print("Starting code review...")
     print()
 
@@ -162,7 +155,11 @@ def main() -> None:
             print(f"Warning: Could not read instructions file: {e}", file=sys.stderr)
 
     review_content, token_usage = run_review(
-        context, mode=args.mode, additional_instructions=additional_instructions
+        repo_path=repo_path,
+        target_branch=args.target_branch,
+        changed_files=changed_files,
+        mode=args.mode,
+        additional_instructions=additional_instructions,
     )
 
     # Add executive summary if requested
@@ -170,11 +167,7 @@ def main() -> None:
         review_content, summary_usage = summarize_review(review_content)
         # Merge token usage
         if token_usage and summary_usage:
-            token_usage["total_input_tokens"] += summary_usage["input_tokens"]
-            token_usage["output_tokens"] += summary_usage["output_tokens"]
-            token_usage["total_tokens"] = (
-                token_usage["total_input_tokens"] + token_usage["output_tokens"]
-            )
+            token_usage = token_usage + summary_usage
 
     print()
     Path(output_file).write_text(review_content)
@@ -182,10 +175,7 @@ def main() -> None:
 
     if token_usage:
         print()
-        print("Token Usage:")
-        print(f"  Input tokens:  {token_usage['total_input_tokens']:,}")
-        print(f"  Output tokens: {token_usage['output_tokens']:,}")
-        print(f"  Total tokens:  {token_usage['total_tokens']:,}")
+        token_usage.print()
 
 
 if __name__ == "__main__":
