@@ -1,5 +1,5 @@
+from src.agent.git_utils import get_changed_files
 from src.agent.runner import run_review
-from src.agent.tools.changed_files import _changed_files_impl
 from tests.test_helper import create_test_repo
 
 
@@ -7,7 +7,7 @@ def test_full_review_workflow() -> None:
     """Integration test: full code review workflow from git repo to review output."""
     with create_test_repo() as repo_path:
         # Setup: Get changed files
-        changed_files = _changed_files_impl(str(repo_path), "main")
+        changed_files = get_changed_files(str(repo_path), "main")
 
         # Run review without progress output for cleaner test logs
         # Use additional instructions to keep the review very brief for faster testing

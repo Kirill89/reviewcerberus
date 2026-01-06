@@ -17,7 +17,7 @@ review.
 
 ## Files Examined
 
-List every file you analyzed (with changed_files, diff_file, read_file_part,
+List every file you analyzed (from the provided diffs, read_file_part,
 search_in_files):
 
 - File path
@@ -50,7 +50,7 @@ Document ALL issues discovered, grouped by severity:
 
 ## Files NOT Yet Analyzed
 
-List files from changed_files that you haven't examined yet.
+List files from the Changed Files section that you haven't examined yet.
 
 ## Investigation in Progress
 

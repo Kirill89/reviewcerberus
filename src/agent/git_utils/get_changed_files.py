@@ -1,24 +1,20 @@
+"""Get changed files between branches."""
+
 import subprocess
 
-from langchain_core.messages import ToolMessage
-from langchain_core.tools import tool
-from langgraph.prebuilt import ToolRuntime
-from pydantic import BaseModel, Field
-
-from ..schema import Context
+from .types import FileChange
 
 
-class FileChange(BaseModel):
-    path: str = Field(description="Relative path from repo root")
-    change_type: str = Field(
-        description="Type of change: added, modified, deleted, renamed"
-    )
-    old_path: str | None = Field(description="For renamed files", default=None)
-    additions: int = Field(description="Number of lines added")
-    deletions: int = Field(description="Number of lines deleted")
+def get_changed_files(repo_path: str, target_branch: str) -> list[FileChange]:
+    """Get list of changed files between target branch and HEAD.
 
+    Args:
+        repo_path: Absolute path to the git repository
+        target_branch: Branch to compare against
 
-def _changed_files_impl(repo_path: str, target_branch: str) -> list[FileChange]:
+    Returns:
+        List of FileChange objects
+    """
     result = subprocess.run(
         [
             "git",
@@ -26,7 +22,6 @@ def _changed_files_impl(repo_path: str, target_branch: str) -> list[FileChange]:
             repo_path,
             "diff",
             "--name-status",
-            "--numstat",
             f"{target_branch}...HEAD",
         ],
         capture_output=True,
@@ -95,19 +90,3 @@ def _changed_files_impl(repo_path: str, target_branch: str) -> list[FileChange]:
         )
 
     return changes
-
-
-@tool
-def changed_files(runtime: ToolRuntime[Context]) -> list[FileChange] | ToolMessage:
-    """List all files that changed between target branch and current branch (HEAD)."""
-    print(f"🔧 changed_files")
-    try:
-        return _changed_files_impl(
-            runtime.context.repo_path, runtime.context.target_branch
-        )
-    except Exception as e:
-        print(f"   ✗ Error: {str(e)}")
-        return ToolMessage(
-            content=f"Error getting changed files: {str(e)}",
-            tool_call_id=runtime.tool_call_id,
-        )

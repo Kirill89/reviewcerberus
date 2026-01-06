@@ -40,6 +40,7 @@ RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "200"))
 
 # Context management
 CONTEXT_COMPACT_THRESHOLD = int(os.getenv("CONTEXT_COMPACT_THRESHOLD", "140000"))
+MAX_DIFF_PER_FILE = int(os.getenv("MAX_DIFF_PER_FILE", "10000"))  # characters
 
 # Validate required credentials based on provider
 if MODEL_PROVIDER == "bedrock":

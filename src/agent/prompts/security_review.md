@@ -518,22 +518,11 @@ For each confirmed vulnerability, provide:
    - Check surrounding code for sanitization
    - Understand control flow and conditions
 
-3. **`diff_file`**: Understand what changed
-
-   - Focus on new entry points (API endpoints, handlers, routes)
-   - Check for removed security checks
-   - Identify changes in authentication/authorization logic
-
-4. **`list_files`**: Find security-relevant files
+3. **`list_files`**: Find security-relevant files
 
    - List config files for security misconfigurations
    - Find authentication/authorization modules
    - Locate security-related utilities
-
-5. **`get_commit_messages`**: Understand change intent
-
-   - Look for security-related changes mentioned
-   - Identify if security was considered
 
 **Critical Investigation Pattern:**
 

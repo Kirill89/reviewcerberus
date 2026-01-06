@@ -42,9 +42,7 @@ def create_test_repo() -> Generator[Path, None, None]:
 
 
 def create_mock_runtime(repo_path: str, target_branch: str = "main") -> Mock:
-    context = Context(
-        repo_path=repo_path, target_branch=target_branch, changed_files=[]
-    )
+    context = Context(repo_path=repo_path, target_branch=target_branch)
     runtime = Mock()
     runtime.context = context
     runtime.tool_call_id = "test"

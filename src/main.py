@@ -4,8 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from .agent.git_utils import FileChange, get_changed_files
 from .agent.runner import run_review, summarize_review
-from .agent.tools.changed_files import FileChange, _changed_files_impl
 from .config import MODEL_NAME, MODEL_PROVIDER
 
 
@@ -131,7 +131,7 @@ def main() -> None:
     print_model_config(has_instructions=bool(args.instructions))
 
     try:
-        changed_files = _changed_files_impl(repo_path, args.target_branch)
+        changed_files = get_changed_files(repo_path, args.target_branch)
     except subprocess.CalledProcessError as e:
         print(f"Error: Could not get changed files: {e.stderr}", file=sys.stderr)
         sys.exit(1)

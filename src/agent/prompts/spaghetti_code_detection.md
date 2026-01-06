@@ -155,12 +155,7 @@ For each issue found, provide:
    - Read potential matches to verify similarity
    - Check utility files and helper modules
 
-3. **`diff_file`**: Understand what changed
-
-   - View the actual changes to analyze duplication
-   - Look for repeated patterns within the diff
-
-4. **`list_files`**: Find relevant modules
+3. **`list_files`**: Find relevant modules
 
    - List files in utility/helper directories
    - Find files with similar names or purposes

@@ -1,42 +1,14 @@
 from typing import Any
 
-import mdformat
-
 from ..config import RECURSION_LIMIT
 from .agent import create_review_agent
+from .formatting import build_review_context, format_review_content
+from .git_utils import FileChange
 from .model import model
 from .progress_callback_handler import ProgressCallbackHandler
 from .prompts import get_prompt
 from .schema import Context
 from .token_usage import TokenUsage
-from .tools.changed_files import FileChange
-
-
-def _format_review_content(raw_content: str) -> str:
-    """Format and extract review content from AI response.
-
-    Formats the markdown content with consistent styling (80-char wrap, numbered
-    lists, GitHub Flavored Markdown) and extracts the review starting from the
-    first markdown header, removing any meta-commentary.
-
-    Args:
-        raw_content: The raw content string from the AI response
-
-    Returns:
-        Formatted markdown content starting from the first header
-    """
-    formatted = mdformat.text(
-        raw_content,
-        options={
-            "number": True,
-            "wrap": 80,
-        },
-        extensions={
-            "gfm",
-        },
-    )
-
-    return "#" + formatted.split("#", 1)[1]
 
 
 def summarize_review(
@@ -65,7 +37,7 @@ def summarize_review(
     final_content = f"{response.content}\n\n---\n\n# Full Review\n\n{review_content}"
 
     # Format the entire combined content for uniform markdown
-    final_content = _format_review_content(final_content)
+    final_content = format_review_content(final_content)
 
     # Track token usage
     token_usage = TokenUsage.from_response(response)
@@ -84,8 +56,10 @@ def run_review(
     context = Context(
         repo_path=repo_path,
         target_branch=target_branch,
-        changed_files=changed_files,
     )
+
+    # Build the review context with all diffs and commit messages
+    user_message = build_review_context(repo_path, target_branch, changed_files)
 
     # Create agent with additional instructions in system prompt for better effectiveness
     agent = create_review_agent(
@@ -109,7 +83,7 @@ def run_review(
             "messages": [
                 {
                     "role": "user",
-                    "content": "Please review the code changes.",
+                    "content": user_message,
                 }
             ],
         },
@@ -127,7 +101,7 @@ def run_review(
             else str(final_message)
         )
 
-        content = _format_review_content(raw_content)
+        content = format_review_content(raw_content)
     else:
         content = str(response)
 

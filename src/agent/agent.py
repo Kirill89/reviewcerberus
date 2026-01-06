@@ -8,9 +8,6 @@ from .prompts import get_prompt
 from .schema import Context
 from .summarizing_middleware import SummarizingMiddleware
 from .tools import (
-    changed_files,
-    diff_file,
-    get_commit_messages,
     list_files,
     read_file_part,
     search_in_files,
@@ -43,9 +40,6 @@ def create_review_agent(
         model=model,
         system_prompt=system_prompt,
         tools=[
-            changed_files,
-            get_commit_messages,
-            diff_file,
             read_file_part,
             search_in_files,
             list_files,

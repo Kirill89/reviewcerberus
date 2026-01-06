@@ -6,4 +6,3 @@ from pydantic import BaseModel, Field
 class Context(BaseModel):
     repo_path: str = Field(description="Absolute path to the git repository")
     target_branch: str = Field(description="Base branch to compare against")
-    changed_files: list = Field(description="List of FileChange objects")
