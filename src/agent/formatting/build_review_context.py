@@ -47,9 +47,7 @@ def build_review_context(
             continue
 
         diff = get_file_diff(repo_path, target_branch, f.path)
-        if diff is None:
-            diff_parts.append(f"### {f.path}\n*Binary file*")
-        else:
+        if diff:
             diff_parts.append(f"### {f.path}\n```diff\n{diff}\n```")
 
     sections.append("## Diffs\n" + "\n\n".join(diff_parts))

@@ -17,7 +17,7 @@ def get_file_diff(
         context_lines: Number of context lines around changes
 
     Returns:
-        Diff string (truncated if exceeds MAX_DIFF_PER_FILE), or None for binary files
+        Diff string (truncated if exceeds MAX_DIFF_PER_FILE), or None if empty
     """
     result = subprocess.run(
         [
@@ -37,8 +37,7 @@ def get_file_diff(
 
     diff_text = result.stdout
 
-    # Check if this is a binary file
-    if "Binary files" in diff_text or not diff_text.strip():
+    if not diff_text.strip():
         return None
 
     # Truncate if too large
