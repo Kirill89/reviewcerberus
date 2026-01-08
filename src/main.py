@@ -4,28 +4,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .agent.git_utils import FileChange, get_changed_files
-from .agent.runner import run_review, summarize_review
+from .agent.formatting import format_review_content, render_structured_output
+from .agent.git_utils import (
+    FileChange,
+    get_changed_files,
+    get_current_branch,
+    get_repo_root,
+)
+from .agent.runner import run_review
 from .config import MODEL_NAME, MODEL_PROVIDER
-
-
-def get_current_branch(repo_path: str) -> str:
-    result = subprocess.run(
-        ["git", "-C", repo_path, "rev-parse", "--abbrev-ref", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return result.stdout.strip()
-
-
-def get_repo_root(path: str | None = None) -> str:
-    cmd = ["git", "rev-parse", "--show-toplevel"]
-    if path:
-        cmd = ["git", "-C", path, "rev-parse", "--show-toplevel"]
-
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return result.stdout.strip()
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -47,17 +34,6 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--instructions",
         help="Path to markdown file with additional instructions for the reviewer",
-    )
-    parser.add_argument(
-        "--mode",
-        choices=["full", "summary", "spaghetti", "security"],
-        default="full",
-        help="Review mode: full (comprehensive review), summary (high-level overview), spaghetti (code quality and redundancy detection), or security (OWASP Top 10 security analysis)",
-    )
-    parser.add_argument(
-        "--no-summary",
-        action="store_true",
-        help="Skip executive summary generation (faster)",
     )
     return parser.parse_args()
 
@@ -154,20 +130,16 @@ def main() -> None:
         except Exception as e:
             print(f"Warning: Could not read instructions file: {e}", file=sys.stderr)
 
-    review_content, token_usage = run_review(
+    review_output, token_usage = run_review(
         repo_path=repo_path,
         target_branch=args.target_branch,
         changed_files=changed_files,
-        mode=args.mode,
         additional_instructions=additional_instructions,
     )
 
-    # Add executive summary if requested
-    if not args.no_summary:
-        review_content, summary_usage = summarize_review(review_content)
-        # Merge token usage
-        if token_usage and summary_usage:
-            token_usage = token_usage + summary_usage
+    # Render structured output to markdown and format
+    review_content = render_structured_output(review_output)
+    review_content = format_review_content(review_content)
 
     print()
     Path(output_file).write_text(review_content)

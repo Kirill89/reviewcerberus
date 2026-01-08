@@ -11,16 +11,16 @@ changes between the current branch (HEAD) and the target branch.
 
 ## TASK 1 – HIGH-LEVEL CHANGES SUMMARY
 
-1. Provide a concise, high-level summary of the changes introduced in this
-   branch compared to the target branch.
-2. Describe:
-   - The main features or behaviors added, modified, or removed
-   - Any architectural or design changes
-   - Any changes that are risky or far-reaching in impact
-3. Keep this section structured as:
-   - Overview
-   - Key changes
-   - Potentially risky areas
+Provide a concise, high-level summary of the changes for the `description`
+field:
+
+1. **Overview**: What is the main purpose of these changes?
+2. **Key changes**: List the main features or behaviors added, modified, or
+   removed, including any architectural or design changes.
+3. **Potentially risky areas**: Highlight changes that are risky or far-reaching
+   in impact.
+
+Format this as markdown content.
 
 ## TASK 2 – DETAILED CODE REVIEW OF THE DIFF
 
@@ -41,7 +41,7 @@ and review it along the following dimensions:
        points (APIs, handlers, UI actions, background jobs)?
      - Could these changes accidentally bypass existing authorization checks or
        broaden access to data or operations?
-     - Are role/permission checks consistent with the rest of the system’s
+     - Are role/permission checks consistent with the rest of the system's
        conventions?
    - Call out missing or weak input validation/sanitization, unsafe external
      calls, secrets in code, or dangerous default configurations.
@@ -80,34 +80,47 @@ and review it along the following dimensions:
    - Identify missing error handling, unhandled failure paths, and missing tests
      for important branches, edge cases, security-critical logic, or permission
      checks.
+7. DOCUMENTATION
+   - Check if new public APIs, functions, or classes have adequate
+     documentation.
+   - Identify missing or outdated docstrings, comments, or README updates.
+   - Point out misleading or incorrect documentation that doesn't match the
+     code.
+   - Flag complex logic that lacks explanatory comments.
 
-## TASK 3 – PRIORITIZED ISSUE LIST
+## TASK 3 – REPORT ISSUES
 
-For all issues you find in the changed code, produce a **prioritized list** with
-the following structure:
+For all issues found, add them to the `issues` array with the following fields:
 
-- Category: \[LOGIC | SECURITY | ACCESS_CONTROL | PERFORMANCE | QUALITY |
-  SIDE_EFFECTS | TESTING\]
-- Severity: [CRITICAL | HIGH | MEDIUM | LOW]
-- Location: file and function/method name (and line numbers if you can infer
-  them)
-- Issue: one-sentence description of the problem
-- Explanation: why it matters and the potential impact (including possible
-  breakage in other parts of the system)
-- Suggested Fix: a concrete recommendation; include short code snippets when
-  useful
+- **title**: Short, descriptive title of the issue (one sentence)
+- **category**: One of: LOGIC, SECURITY, ACCESS_CONTROL, PERFORMANCE, QUALITY,
+  SIDE_EFFECTS, TESTING, DOCUMENTATION
+- **severity**: One of:
+  - CRITICAL: Security vulnerabilities, data loss, or breaking bugs
+  - HIGH: Significant bugs or performance issues that need immediate attention
+  - MEDIUM: Issues that should be fixed but won't cause immediate problems
+  - LOW: Minor improvements, style issues, or suggestions
+- **location**: Array of objects with `filename` and optional `line` number
+  where the issue occurs
+- **explanation**: Detailed markdown explanation of why this is a problem and
+  its potential impact. Can include code samples to illustrate the issue.
+- **suggested_fix**: Markdown-formatted recommendation for how to fix the issue.
+  Include code snippets showing the corrected code when useful, or step-by-step
+  instructions.
 
-## FORMATTING REQUIREMENTS
+## OUTPUT REQUIREMENTS
 
-- Start with the **High-Level Changes Summary**.
-- Then provide a **Detailed Findings** section grouped by category (Logic,
-  Security/Access Control, Performance, Quality, Side Effects/Impact, Testing).
-- End with a **Prioritized Issue List** table or bullet list.
-- Be specific and actionable; avoid generic comments.
-- If something looks risky, but you are not certain, mark it as a “concern” and
-  explain what should be double‑checked.
+Your response MUST be a structured output with:
 
-## OUTPUT TARGET
+1. **description**: A markdown-formatted high-level summary covering:
 
-- Write the full review content as if it will be saved into a file called
-  `review.md` (Markdown format with headings, lists, and tables as needed).
+   - Overview of the changes
+   - Key changes made
+   - Potentially risky areas
+
+2. **issues**: An array of issue objects. Each issue must have all required
+   fields.
+
+Be specific and actionable in your feedback. Avoid generic comments. If
+something looks risky but you're not certain, still report it as an issue and
+explain what should be double-checked.

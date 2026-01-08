@@ -26,16 +26,16 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 MODEL_NAME = os.getenv(
     "MODEL_NAME",
     (
-        "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+        "us.anthropic.claude-opus-4-5-20251101-v1:0"
         if MODEL_PROVIDER == "bedrock"
         else (
-            "claude-sonnet-4-5-20250929"
+            "claude-opus-4-5-20251101"
             if MODEL_PROVIDER == "anthropic"
-            else "devstral-small-2:24b-cloud"
+            else "devstral-2:123b-cloud"
         )  # ollama default
     ),
 )
-MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "8192"))
+MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "10000"))
 RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "200"))
 
 # Context management
