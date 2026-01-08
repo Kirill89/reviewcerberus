@@ -1,7 +1,7 @@
 # ReviewCerberus
 
 AI-powered code review tool that analyzes git branch differences and generates
-comprehensive review reports with executive summaries.
+comprehensive review reports with structured output.
 
 ## Quick Start
 
@@ -18,24 +18,14 @@ directory.
 
 ## Key Features
 
-- **Four Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti
-  (code quality), Security (OWASP Top 10)
-- **Executive Summaries**: Auto-generated highlights of critical issues
-- **Multi-Provider**: AWS Bedrock or Anthropic API
+- **Comprehensive Reviews**: Detailed analysis of logic, security, performance,
+  and code quality
+- **Structured Output**: Issues organized by severity with summary table
+- **Multi-Provider**: AWS Bedrock, Anthropic API, or Ollama
 - **Smart Analysis**: Context provided upfront with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
 
 ## Usage Examples
-
-Choose review mode:
-
-```bash
-docker run --rm -it -v $(pwd):/repo \
-  -e MODEL_PROVIDER=anthropic \
-  -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
-  kirill89/reviewcerberus-cli:latest \
-  --repo-path /repo --mode full --output /repo/review.md
-```
 
 Custom target branch:
 
@@ -47,19 +37,21 @@ docker run --rm -it -v $(pwd):/repo \
   --repo-path /repo --target-branch develop --output /repo/review.md
 ```
 
-Skip executive summary (faster):
+With custom review guidelines:
 
 ```bash
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
   -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
   kirill89/reviewcerberus-cli:latest \
-  --repo-path /repo --no-summary --output /repo/review.md
+  --repo-path /repo --instructions /repo/guidelines.md --output /repo/review.md
 ```
 
-## Review Modes
+## What's Included
 
-### Full Review (Comprehensive Analysis)
+### Comprehensive Code Review
+
+Detailed analysis covering:
 
 - Logic & Correctness: Bugs, edge cases, error handling
 - Security: OWASP issues, access control, input validation
@@ -67,48 +59,16 @@ docker run --rm -it -v $(pwd):/repo \
 - Code Quality: Duplication, complexity, maintainability
 - Side Effects: Impact on other system parts
 - Testing: Coverage gaps, missing test cases
+- Documentation: Missing or outdated docs
 
-### Summary Mode (High-Level Overview)
+### Structured Output
 
-- Brief description of changes (2-4 sentences)
-- Task-style description and logical grouping
-- User impact and new components
-- System integration overview
+Every review includes:
 
-### Spaghetti Mode (Code Quality Analysis)
-
-- Code Duplication: Within changes and across codebase
-- Reuse Opportunities: Existing functions/classes to leverage
-- Redundancy: Repeated checks and validations
-- Library Usage: Standard library or dependency suggestions
-- Abstraction: Opportunities for better patterns
-- Dead Code: Unused imports, unreachable code
-- Over-Engineering: Unnecessary complexity
-
-### Security Mode (OWASP Top 10 Analysis)
-
-- Access Control: Missing authorization, privilege escalation
-- Cryptographic Failures: Hardcoded secrets, weak encryption
-- Injection: Command, SQL, Path Traversal, Code Injection
-- Authentication & Authorization: Weak auth, session issues
-- Security Misconfiguration: Debug mode, verbose errors
-- Vulnerable Components: Outdated dependencies
-- Data Integrity: Insecure deserialization
-- Logging & Monitoring: Missing security logs
-- SSRF: Unvalidated URL requests
-
-**Key Feature**: Actively traces data flows from user input to dangerous sinks
-to confirm exploitability, not just pattern matching.
-
-### Executive Summary (All Modes)
-
-Every review includes an auto-generated summary at the top:
-
-- Top 3-5 critical issues with locations
-- Issue counts by severity (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, ⚪ LOW)
-- Actionable recommendations
-
-Disable with `--no-summary` for faster reviews.
+- **Summary**: High-level overview of changes and risky areas
+- **Issues Table**: All issues at a glance with severity indicators (🔴 CRITICAL,
+  🟠 HIGH, 🟡 MEDIUM, 🟢 LOW)
+- **Detailed Issues**: Each issue with explanation, location, and suggested fix
 
 ## Configuration
 
@@ -117,7 +77,7 @@ Disable with `--no-summary` for faster reviews.
 ```bash
 -e MODEL_PROVIDER=anthropic
 -e ANTHROPIC_API_KEY=sk-ant-your-api-key
--e MODEL_NAME=claude-sonnet-4-5-20250929  # optional
+-e MODEL_NAME=claude-opus-4-5-20251101  # optional
 ```
 
 ### AWS Bedrock (default)
@@ -126,7 +86,7 @@ Disable with `--no-summary` for faster reviews.
 -e AWS_ACCESS_KEY_ID=your_key
 -e AWS_SECRET_ACCESS_KEY=your_secret
 -e AWS_REGION_NAME=us-east-1
--e MODEL_NAME=us.anthropic.claude-sonnet-4-5-20250929-v1:0  # optional
+-e MODEL_NAME=us.anthropic.claude-opus-4-5-20251101-v1:0  # optional
 ```
 
 ### Ollama (local models)
@@ -134,18 +94,15 @@ Disable with `--no-summary` for faster reviews.
 ```bash
 -e MODEL_PROVIDER=ollama
 -e OLLAMA_BASE_URL=http://host.docker.internal:11434
--e MODEL_NAME=devstral-small-2:24b-cloud  # optional
+-e MODEL_NAME=devstral-2:123b-cloud  # optional
 ```
 
 ## Command-Line Options
 
-- `--mode`: Review mode (`full`, `summary`, `spaghetti`, `security`) - default:
-  `full`
 - `--target-branch`: Branch to compare against - default: `main`
 - `--output`: Output file path or directory
 - `--repo-path`: Path to git repository - default: `/repo`
 - `--instructions`: Path to markdown file with custom review guidelines
-- `--no-summary`: Skip executive summary generation
 
 ## Requirements
 

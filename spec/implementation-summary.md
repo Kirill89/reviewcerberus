@@ -8,8 +8,8 @@ principles.
 
 **Key Features:**
 
-- Three specialized review modes: full, summary, and spaghetti (code quality)
-- Auto-generated executive summaries for all reviews
+- Comprehensive code reviews with detailed analysis
+- Structured output with issues organized by severity
 - Multi-provider support (AWS Bedrock, Anthropic API, and Ollama)
 - Automatic context management for large PRs
 
@@ -155,54 +155,34 @@ code/generated files:
 - Without truncation: 438k tokens from 25 matches (context explosion)
 - With truncation: 1.5k tokens from 25 matches (295x reduction)
 
-### 11. Review Modes
+### 11. Structured Output
 
-Three specialized review modes available:
-
-**Full Mode (default):**
-
-- Comprehensive code review with detailed analysis
-- Checks logic, security, performance, code quality, side effects, testing
-- Produces prioritized issue list with severity levels
-
-**Summary Mode:**
-
-- High-level overview of changes
-- Task-style description and logical grouping
-- User impact analysis and system integration overview
-
-**Spaghetti Mode:**
-
-- Code quality and redundancy detection
-- Actively searches codebase for similar patterns using `search_in_files`
-- Detects: duplication, missed reuse opportunities, redundant patterns, dead
-  code, over-engineering
-- Suggests: library usage, abstraction opportunities, refactoring
-
-### 12. Executive Summary
-
-All reviews automatically include an AI-generated executive summary prepended to
-the top:
+All reviews use structured output for consistent, machine-parseable results:
 
 **Architecture:**
 
-- Post-processing step after main review generation
-- Simple LLM call (fast, no agent overhead)
-- Uses conversational prompt validated through user testing
-- Formatted with `_format_review_content()` for uniform markdown
+- Agent returns `PrimaryReviewOutput` schema directly
+- Rendered to markdown via `render_structured_output()`
+- Formatted with `format_review_content()` for uniform markdown
 
-**Summary Contains:**
+**Output Schema:**
 
-- Issue counts by severity (with emojis: 🔴 CRITICAL, 🟠 HIGH, etc.)
-- Top 3-5 most critical issues with locations
-- Brief recommendation on priorities
-- Concise (1 page max, ~300-500 words)
+- `description`: High-level markdown summary (overview, key changes, risky
+  areas)
+- `issues`: List of `ReviewIssue` objects, each with:
+  - `title`: Short description
+  - `category`: LOGIC, SECURITY, ACCESS_CONTROL, PERFORMANCE, QUALITY,
+    SIDE_EFFECTS, TESTING, DOCUMENTATION
+  - `severity`: CRITICAL, HIGH, MEDIUM, LOW
+  - `location`: List of file paths with optional line numbers
+  - `explanation`: Detailed markdown explanation
+  - `suggested_fix`: Markdown fix recommendation
 
-**Configuration:**
+**Rendered Output:**
 
-- Enabled by default for all modes
-- Disable with `--no-summary` flag for faster reviews
-- Token usage tracked and merged with main review
+- Issues summary table with severity indicators (🔴 🟠 🟡 🟢)
+- Detailed issues section with full explanations
+- Sorted by severity (CRITICAL first)
 
 ______________________________________________________________________
 
@@ -224,21 +204,21 @@ reviewcerberus/
 │       │   └── ollama.py                # Ollama provider
 │       ├── prompts/                     # Review prompts
 │       │   ├── __init__.py              # Prompt loader
-│       │   ├── full_review.md           # Full review mode prompt
-│       │   ├── summary_mode.md          # Summary mode prompt
-│       │   ├── spaghetti_code_detection.md  # Spaghetti mode prompt
-│       │   ├── executive_summary.md     # Executive summary prompt
+│       │   ├── full_review.md           # Main review prompt
 │       │   └── context_summary.md       # Context compaction prompt
 │       ├── git_utils/                   # Git operations
 │       │   ├── get_changed_files.py     # List changed files
 │       │   ├── get_commit_messages.py   # Get commit history
 │       │   ├── get_file_diff.py         # Get file diffs
+│       │   ├── get_current_branch.py    # Get current branch name
+│       │   ├── get_repo_root.py         # Get repository root path
 │       │   └── types.py                 # FileChange, CommitInfo models
 │       ├── formatting/                  # Context and output formatting
 │       │   ├── build_review_context.py  # Build initial context message
-│       │   └── format_review_content.py # Format markdown output
-│       ├── schema.py                    # Context model
-│       ├── runner.py                    # Agent runner + summarize_review()
+│       │   ├── format_review_content.py # Format markdown output
+│       │   └── render_structured_output.py  # Render schema to markdown
+│       ├── schema.py                    # Data models (Context, ReviewIssue, etc.)
+│       ├── runner.py                    # Agent runner
 │       ├── progress_callback_handler.py # Progress display
 │       └── tools/                       # 3 review tools
 │
@@ -387,7 +367,7 @@ MODEL_PROVIDER=bedrock  # default
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_REGION_NAME=us-east-1
-MODEL_NAME=us.anthropic.claude-sonnet-4-5-20250929-v1:0
+MODEL_NAME=us.anthropic.claude-opus-4-5-20251101-v1:0
 ```
 
 **.env (Anthropic API):**
@@ -395,7 +375,7 @@ MODEL_NAME=us.anthropic.claude-sonnet-4-5-20250929-v1:0
 ```bash
 MODEL_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
-MODEL_NAME=claude-sonnet-4-5-20250929
+MODEL_NAME=claude-opus-4-5-20251101
 ```
 
 **.env (Ollama):**
@@ -403,7 +383,7 @@ MODEL_NAME=claude-sonnet-4-5-20250929
 ```bash
 MODEL_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434      # optional, default
-MODEL_NAME=devstral-small-2:24b-cloud       # optional, default
+MODEL_NAME=devstral-2:123b-cloud            # optional, default
 ```
 
 **Model Initialization:**
@@ -420,13 +400,8 @@ ______________________________________________________________________
 ## Usage
 
 ```bash
-# Basic usage (full review with executive summary)
+# Run code review
 poetry run reviewcerberus
-
-# Different review modes
-poetry run reviewcerberus --mode full       # Comprehensive review
-poetry run reviewcerberus --mode summary    # High-level overview
-poetry run reviewcerberus --mode spaghetti  # Code quality/redundancy
 
 # Specify target branch
 poetry run reviewcerberus --target-branch develop
@@ -439,9 +414,6 @@ poetry run reviewcerberus --repo-path /path/to/repo
 
 # Additional review instructions
 poetry run reviewcerberus --instructions guidelines.md
-
-# Skip executive summary (faster)
-poetry run reviewcerberus --no-summary
 ```
 
 ______________________________________________________________________

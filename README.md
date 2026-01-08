@@ -5,14 +5,14 @@
 </p>
 
 AI-powered code review tool that analyzes git branch differences and generates
-comprehensive review reports with executive summaries.
+comprehensive review reports with structured output.
 
 ## Key Features
 
-- **Three Review Modes**: Full (comprehensive), Summary (high-level), Spaghetti
-  (code quality)
-- **Executive Summaries**: Auto-generated highlights of critical issues
-- **Multi-Provider**: AWS Bedrock or Anthropic API
+- **Comprehensive Reviews**: Detailed analysis of logic, security, performance,
+  and code quality
+- **Structured Output**: Issues organized by severity with summary table
+- **Multi-Provider**: AWS Bedrock, Anthropic API, or Ollama
 - **Smart Analysis**: Context provided upfront with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
 
@@ -42,14 +42,8 @@ ______________________________________________________________________
 ### Basic Commands
 
 ```bash
-# Default: full review with executive summary
+# Run code review
 poetry run reviewcerberus
-
-# Choose review mode
-poetry run reviewcerberus --mode full       # Detailed analysis
-poetry run reviewcerberus --mode summary    # High-level overview
-poetry run reviewcerberus --mode spaghetti  # Code quality focus
-poetry run reviewcerberus --mode security   # Security analysis (OWASP Top 10)
 
 # Custom target branch
 poetry run reviewcerberus --target-branch develop
@@ -63,32 +57,26 @@ poetry run reviewcerberus --repo-path /path/to/repo
 
 # Add custom review guidelines
 poetry run reviewcerberus --instructions guidelines.md
-
-# Skip executive summary (faster)
-poetry run reviewcerberus --no-summary
 ```
 
 ### Example Commands
 
 ```bash
 # Full review with custom guidelines
-poetry run reviewcerberus --mode full --target-branch main \
+poetry run reviewcerberus --target-branch main \
   --output review.md --instructions guidelines.md
 
-# Quick summary for a different repo
-poetry run reviewcerberus --mode summary --repo-path /other/repo
-
-# Code quality check without summary
-poetry run reviewcerberus --mode spaghetti --no-summary
+# Review a different repo
+poetry run reviewcerberus --repo-path /other/repo
 ```
 
 ______________________________________________________________________
 
-## Review Modes
+## What's Included
 
-### 1. Full Review (Comprehensive Analysis)
+### Comprehensive Code Review
 
-Detailed code review covering:
+Detailed analysis covering:
 
 - **Logic & Correctness**: Bugs, edge cases, error handling
 - **Security**: OWASP issues, access control, input validation
@@ -96,53 +84,16 @@ Detailed code review covering:
 - **Code Quality**: Duplication, complexity, maintainability
 - **Side Effects**: Impact on other system parts
 - **Testing**: Coverage gaps, missing test cases
+- **Documentation**: Missing or outdated docs, unclear comments
 
-### 2. Summary Mode (High-Level Overview)
+### Structured Output
 
-Concise overview including:
+Every review includes:
 
-- Brief description of changes (2-4 sentences)
-- Task-style description and logical grouping
-- User impact and new components
-- System integration overview
-
-### 3. Spaghetti Mode (Code Quality Analysis)
-
-Focuses on code maintainability:
-
-- **Code Duplication**: Within changes and across codebase
-- **Reuse Opportunities**: Existing functions/classes to leverage
-- **Redundancy**: Repeated checks and validations
-- **Library Usage**: Standard library or dependency suggestions
-- **Abstraction**: Opportunities for better patterns
-- **Dead Code**: Unused imports, unreachable code
-- **Over-Engineering**: Unnecessary complexity
-
-### 4. Security Mode (OWASP Top 10 Analysis)
-
-Deep security analysis with data flow tracing:
-
-- **Access Control**: Missing authorization, privilege escalation
-- **Cryptographic Failures**: Hardcoded secrets, weak encryption
-- **Injection**: Command, SQL, Path Traversal, Code Injection
-- **Authentication & Authorization**: Weak auth, session issues
-- **Security Misconfiguration**: Debug mode, verbose errors
-- **Vulnerable Components**: Outdated dependencies
-- **Logging & Monitoring**: Missing security logs
-- **SSRF**: Unvalidated URL requests
-
-**Key Feature**: The agent actively traces data flows from user input to
-dangerous sinks to confirm exploitability, not just pattern matching.
-
-### Executive Summary (All Modes)
-
-Every review includes an auto-generated summary at the top:
-
-- Top 3-5 critical issues with locations
-- Issue counts by severity (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, ⚪ LOW)
-- Actionable recommendations
-
-Disable with `--no-summary` for faster reviews.
+- **Summary**: High-level overview of changes and risky areas
+- **Issues Table**: All issues at a glance with severity indicators (🔴 CRITICAL,
+  🟠 HIGH, 🟡 MEDIUM, 🟢 LOW)
+- **Detailed Issues**: Each issue with explanation, location, and suggested fix
 
 ______________________________________________________________________
 
@@ -155,7 +106,7 @@ ______________________________________________________________________
    - File reading with line ranges
    - Pattern search across codebase
    - Directory listing
-4. **Generates** markdown review report with executive summary
+4. **Generates** structured review output rendered as markdown
 
 **Progress Display:**
 
@@ -173,7 +124,6 @@ Starting code review...
 
 🤔 Thinking... ⏱️  3.0s
 🔧 read_file_part: src/main.py
-📊 Generating executive summary...
 
 ✓ Review completed: review_feature-branch.md
 
@@ -192,7 +142,7 @@ All configuration via environment variables (`.env` file):
 ### Provider Selection
 
 ```bash
-MODEL_PROVIDER=bedrock  # or "anthropic" (default: bedrock)
+MODEL_PROVIDER=bedrock  # or "anthropic" or "ollama" (default: bedrock)
 ```
 
 ### AWS Bedrock (if MODEL_PROVIDER=bedrock)
@@ -201,7 +151,7 @@ MODEL_PROVIDER=bedrock  # or "anthropic" (default: bedrock)
 AWS_ACCESS_KEY_ID=your_key
 AWS_SECRET_ACCESS_KEY=your_secret
 AWS_REGION_NAME=us-east-1
-MODEL_NAME=us.anthropic.claude-sonnet-4-5-20250929-v1:0  # optional
+MODEL_NAME=us.anthropic.claude-opus-4-5-20251101-v1:0  # optional
 ```
 
 **Docker example with Bedrock:**
@@ -219,7 +169,7 @@ docker run --rm -it -v $(pwd):/repo \
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-your-api-key-here
-MODEL_NAME=claude-sonnet-4-5-20250929  # optional
+MODEL_NAME=claude-opus-4-5-20251101  # optional
 ```
 
 ### Ollama (if MODEL_PROVIDER=ollama)
@@ -227,7 +177,7 @@ MODEL_NAME=claude-sonnet-4-5-20250929  # optional
 ```bash
 MODEL_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434  # optional, default
-MODEL_NAME=devstral-small-2:24b-cloud   # optional
+MODEL_NAME=devstral-2:123b-cloud        # optional
 ```
 
 **Docker example with Ollama:**
@@ -244,7 +194,7 @@ docker run --rm -it -v $(pwd):/repo \
 ### Optional Settings
 
 ```bash
-MAX_OUTPUT_TOKENS=8192      # Maximum tokens in response
+MAX_OUTPUT_TOKENS=10000     # Maximum tokens in response
 RECURSION_LIMIT=200         # Agent recursion limit
 ```
 
@@ -252,10 +202,7 @@ RECURSION_LIMIT=200         # Agent recursion limit
 
 Customize prompts in `src/agent/prompts/`:
 
-- `full_review.md` - Full review mode
-- `summary_mode.md` - Summary mode
-- `spaghetti_code_detection.md` - Spaghetti mode
-- `executive_summary.md` - Executive summary generation
+- `full_review.md` - Main review prompt
 - `context_summary.md` - Context compaction for large PRs
 
 ______________________________________________________________________
@@ -312,11 +259,11 @@ src/
 └── agent/
     ├── agent.py                     # Agent setup
     ├── model.py                     # Model initialization
-    ├── runner.py                    # Review execution + summarization
+    ├── runner.py                    # Review execution
     ├── prompts/                     # Review prompts
-    ├── schema.py                    # Data models
+    ├── schema.py                    # Data models (including structured output)
     ├── git_utils/                   # Git operations (changed files, diffs, commits)
-    ├── formatting/                  # Context building and output formatting
+    ├── formatting/                  # Context building and output rendering
     ├── progress_callback_handler.py # Progress display
     └── tools/                       # 3 review tools (read, search, list)
 ```

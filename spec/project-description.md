@@ -3,11 +3,9 @@
 ## Overview
 
 A minimalist CLI tool that performs automated code reviews using AI models. The
-tool analyzes Git branch differences and generates review reports in Markdown
-format. Supports three specialized review modes: comprehensive full reviews,
-high-level summaries, and code quality/redundancy detection (spaghetti mode).
-All reviews include an auto-generated executive summary for quick focus on
-critical issues.
+tool analyzes Git branch differences and generates comprehensive review reports
+in Markdown format with structured output for consistent, machine-parseable
+results.
 
 ## Core Features
 
@@ -15,19 +13,11 @@ critical issues.
 
 Simple command-line interface with sensible defaults:
 
-- **Review Mode**: `full` (default), `summary`, `spaghetti`, or `security`
-  - `full`: Comprehensive code review with detailed analysis
-  - `summary`: High-level overview of changes
-  - `spaghetti`: Code quality and redundancy detection (duplication, missed
-    reuse opportunities, dead code, over-engineering)
-  - `security`: OWASP Top 10 security analysis with data flow tracing
 - **Target Branch**: `main` (default) or user-specified (supports branch names
   and commit hashes)
 - **Output File**: `review_{current_branch_name}.md` (default) or user-specified
 - **Additional Instructions**: Optional markdown file with custom review
   guidelines
-- **Executive Summary**: Auto-generated summary prepended to all reviews
-  (disable with `--no-summary`)
 
 The tool always reviews the currently checked out branch against the target
 branch.
@@ -105,62 +95,33 @@ The agent also has access to these tools for additional analysis:
 
 ## Output Format
 
-**All review modes include an executive summary at the top** that:
+**All reviews use structured output** rendered to markdown:
 
-- Highlights the most critical issues (top 3-5)
-- Shows issue counts by severity
-- Provides actionable recommendations
-- Uses emojis for visual clarity (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, ⚪ LOW)
+### Summary Section
 
-### Full Review Mode
+High-level overview of changes including:
 
-Markdown file containing:
+- Overview of the main purpose
+- Key changes made
+- Potentially risky areas
 
-- Executive summary (auto-generated)
-- Review summary
-- File-by-file analysis
-- Issues found (bugs, code smells, improvements)
-- Security concerns
-- Performance suggestions
-- Best practice recommendations
+### Issues Summary Table
 
-### Summary Mode
+Quick overview of all issues with:
 
-Markdown file containing:
+- Severity indicators (🔴 CRITICAL, 🟠 HIGH, 🟡 MEDIUM, 🟢 LOW)
+- Title, category, and location
 
-- Executive summary (auto-generated)
-- High-level overview (2-4 sentences)
-- Task-style description of changes
-- Logical grouping of changes by purpose
-- User impact (if applicable)
-- New components and system integration
-- Call graphs for complex interactions (if applicable)
+### Detailed Issues
 
-### Spaghetti Code Detection Mode
+Each issue includes:
 
-Markdown file containing:
-
-- Executive summary (auto-generated)
-- Code quality assessment
-- Code duplication analysis (within changes and across codebase)
-- Redundancy detection (repeated patterns, checks, validations)
-- Missed reuse opportunities (existing functions/classes that could be used)
-- Library usage optimization (standard library or dependencies)
-- Abstraction opportunities (inheritance, composition, interfaces)
-- Dead/unreachable code detection
-- Over-engineering concerns
-
-### Security Review Mode
-
-Markdown file containing:
-
-- Executive security summary (auto-generated)
-- Security posture overview
-- Detailed vulnerability analysis organized by OWASP Top 10 categories
-- Data flow analysis showing source → processing → sink for each vulnerability
-- Prioritized security issues by severity (CRITICAL, HIGH, MEDIUM, LOW)
-- Specific remediation guidance with code examples
-- Exploitability assessment for each finding
+- **Category**: LOGIC, SECURITY, ACCESS_CONTROL, PERFORMANCE, QUALITY,
+  SIDE_EFFECTS, TESTING, DOCUMENTATION
+- **Severity**: CRITICAL, HIGH, MEDIUM, LOW
+- **Location**: File paths with optional line numbers
+- **Explanation**: Detailed description of the problem
+- **Suggested Fix**: Concrete recommendation with code snippets
 
 ## Technology Stack
 
