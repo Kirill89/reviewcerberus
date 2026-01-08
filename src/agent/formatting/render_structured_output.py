@@ -61,11 +61,14 @@ def _render_issue(issue: ReviewIssue, index: int) -> str:
     """Render a single issue to markdown format."""
     severity_emoji = _get_severity_emoji(issue.severity)
 
-    # Format locations
-    locations_str = ", ".join(
-        f"`{loc.filename}`" + (f" (line {loc.line})" if loc.line else "")
-        for loc in issue.location
-    )
+    # Format locations with fallback for empty list
+    if issue.location:
+        locations_str = ", ".join(
+            f"`{loc.filename}`" + (f" (line {loc.line})" if loc.line else "")
+            for loc in issue.location
+        )
+    else:
+        locations_str = "Not specified"
 
     lines = [
         f"### {index}. {issue.title}",
