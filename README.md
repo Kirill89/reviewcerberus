@@ -177,7 +177,7 @@ MODEL_NAME=claude-opus-4-5-20251101  # optional
 ```bash
 MODEL_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434  # optional, default
-MODEL_NAME=devstral-2:123b-cloud        # optional
+MODEL_NAME=deepseek-v3.1:671b-cloud     # optional
 ```
 
 **Docker example with Ollama:**
