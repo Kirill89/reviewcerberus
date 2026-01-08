@@ -31,7 +31,7 @@ MODEL_NAME = os.getenv(
         else (
             "claude-opus-4-5-20251101"
             if MODEL_PROVIDER == "anthropic"
-            else "devstral-2:123b-cloud"
+            else "deepseek-v3.1:671b-cloud"
         )  # ollama default
     ),
 )

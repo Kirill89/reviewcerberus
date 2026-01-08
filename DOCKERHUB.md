@@ -94,7 +94,7 @@ Every review includes:
 ```bash
 -e MODEL_PROVIDER=ollama
 -e OLLAMA_BASE_URL=http://host.docker.internal:11434
--e MODEL_NAME=devstral-2:123b-cloud  # optional
+-e MODEL_NAME=deepseek-v3.1:671b-cloud  # optional
 ```
 
 ## Command-Line Options
