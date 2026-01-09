@@ -1,19 +1,20 @@
 from typing import Any
 
+from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import HumanMessage
 from langgraph.runtime import Runtime
-from langgraph.typing import ContextT, StateT
 
 from ..config import RECURSION_LIMIT
 from .prompts import get_prompt
+from .schema import Context
 
 # Reserve steps for the model to generate final structured output
 STEPS_BUFFER = 4
 
 
-class RecursionGuard(AgentMiddleware, BaseCallbackHandler):
+class RecursionGuard(AgentMiddleware[AgentState[Any], Context], BaseCallbackHandler):
     """Middleware and callback that forces final output before hitting recursion limit.
 
     This class serves dual purposes:
@@ -36,7 +37,7 @@ class RecursionGuard(AgentMiddleware, BaseCallbackHandler):
         self.step_count += 1
 
     def before_model(
-        self, state: StateT, runtime: Runtime[ContextT]
+        self, state: AgentState[Any], runtime: Runtime[Context]
     ) -> dict[str, Any] | None:
         """Inject message to force final output when approaching recursion limit."""
         steps_remaining = RECURSION_LIMIT - self.step_count

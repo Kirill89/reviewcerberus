@@ -53,7 +53,7 @@ def create_review_agent(
         ListFilesTool(repo_path=repo_path),
     ]
 
-    agent = create_agent(  # type: ignore[misc]
+    agent = create_agent(
         model=model,
         system_prompt=system_prompt,
         tools=tools,
