@@ -5,6 +5,7 @@ from langchain.agents import create_agent
 from .checkpointer import checkpointer
 from .model import model
 from .prompts import get_prompt
+from .recursion_guard import RecursionGuard
 from .schema import Context, PrimaryReviewOutput
 from .summarizing_middleware import SummarizingMiddleware
 from .tools import (
@@ -14,10 +15,16 @@ from .tools import (
 )
 
 
-def create_review_agent(additional_instructions: str | None = None) -> Any:
+def create_review_agent(
+    recursion_guard: RecursionGuard,
+    additional_instructions: str | None = None,
+) -> Any:
     """Create a review agent with optional additional instructions.
 
     Args:
+        recursion_guard: RecursionGuard instance that tracks steps and forces
+                        output when approaching recursion limit. Must also be
+                        passed to invoke config callbacks.
         additional_instructions: Optional additional review guidelines to append
                                 to the system prompt
 
@@ -45,6 +52,7 @@ def create_review_agent(additional_instructions: str | None = None) -> Any:
         checkpointer=checkpointer,
         middleware=[
             SummarizingMiddleware(),
+            recursion_guard,
         ],
         response_format=PrimaryReviewOutput,
     )
