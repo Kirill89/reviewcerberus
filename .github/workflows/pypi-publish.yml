@@ -1,0 +1,36 @@
+name: PyPI Publish
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
+
+jobs:
+  pypi-publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # Required for OIDC trusted publishing
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=$(poetry version -s)" >> $GITHUB_OUTPUT
+
+      - name: Build package
+        run: poetry build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e
