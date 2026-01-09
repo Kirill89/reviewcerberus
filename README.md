@@ -1,7 +1,7 @@
 # ReviewCerberus
 
 <p align="center">
-  <img src="logo_256.png" alt="ReviewCerberus Logo" width="256" />
+  <img src="https://raw.githubusercontent.com/Kirill89/reviewcerberus/main/logo_256.png" alt="ReviewCerberus Logo" width="256" />
 </p>
 
 AI-powered code review tool that analyzes git branch differences and generates
