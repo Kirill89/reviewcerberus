@@ -43,7 +43,8 @@ def run_review(
     recursion_guard = RecursionGuard()
 
     # Create agent with recursion guard in middleware
-    agent = create_review_agent(
+    agent, _file_context = create_review_agent(
+        repo_path=repo_path,
         recursion_guard=recursion_guard,
         additional_instructions=additional_instructions,
     )

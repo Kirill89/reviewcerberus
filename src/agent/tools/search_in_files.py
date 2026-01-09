@@ -1,29 +1,21 @@
 import subprocess
+from typing import Any
 
-from langchain_core.messages import ToolMessage
-from langchain_core.tools import tool
-from langgraph.prebuilt import ToolRuntime
-from pydantic import BaseModel
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
 
-from ..schema import Context
-from .helpers import truncate_line
-
-
-class SearchMatch(BaseModel):
-    file_path: str
-    line_number: int
-    line_content: str
-    match_context: str
+from ..formatting.format_file_lines import FileLinesMap, format_file_lines
+from .file_context import FileContext
 
 
-def _search_in_files_impl(
+def _search_impl(
     repo_path: str,
     pattern: str,
     file_pattern: str | None = None,
     context_lines: int = 2,
     max_results: int = 50,
-    max_line_length: int = 300,
-) -> list[SearchMatch]:
+) -> FileLinesMap:
+    """Search for patterns in files and return raw lines structure."""
     cmd = ["git", "-C", repo_path, "grep", "-n", f"-C{context_lines}", pattern, "HEAD"]
     if file_pattern:
         cmd.extend(["--", file_pattern])
@@ -33,14 +25,14 @@ def _search_in_files_impl(
     if result.returncode != 0 and result.returncode != 1:
         raise RuntimeError(f"Git grep failed: {result.stderr}")
 
-    matches = []
-    lines = result.stdout.splitlines()
+    lines: FileLinesMap = {}
+    output_lines = result.stdout.splitlines()
 
     current_file = None
     current_line_num = None
-    current_content = []
+    matches_count = 0
 
-    for line in lines[: max_results * 5]:
+    for line in output_lines:
         if line.startswith("--"):
             continue
 
@@ -54,80 +46,86 @@ def _search_in_files_impl(
 
                 if line_num_str.isdigit():
                     if current_file and current_line_num:
-                        matches.append(
-                            SearchMatch(
-                                file_path=current_file,
-                                line_number=current_line_num,
-                                line_content=(
-                                    truncate_line(current_content[0], max_line_length)
-                                    if current_content
-                                    else ""
-                                ),
-                                match_context="\n".join(
-                                    truncate_line(line, max_line_length)
-                                    for line in current_content
-                                ),
-                            )
-                        )
-                        if len(matches) >= max_results:
+                        matches_count += 1
+                        if matches_count >= max_results:
                             break
 
                     current_file = file_path
                     current_line_num = int(line_num_str)
-                    current_content = [content]
+
+                    if file_path not in lines:
+                        lines[file_path] = {}
+                    lines[file_path][current_line_num] = content
                 else:
-                    if current_content:
-                        current_content.append(content)
+                    if current_file == file_path and current_file in lines:
+                        last_line = max(lines[current_file].keys())
+                        inferred_line_num = last_line + 1
+                        lines[file_path][inferred_line_num] = content
 
-    if current_file and current_line_num and len(matches) < max_results:
-        matches.append(
-            SearchMatch(
-                file_path=current_file,
-                line_number=current_line_num,
-                line_content=(
-                    truncate_line(current_content[0], max_line_length)
-                    if current_content
-                    else ""
-                ),
-                match_context="\n".join(
-                    truncate_line(line, max_line_length) for line in current_content
-                ),
+    return lines
+
+
+class SearchInFilesInput(BaseModel):
+    """Input schema for search_in_files tool."""
+
+    pattern: str = Field(description="Text pattern to search for")
+    file_pattern: str | None = Field(
+        default=None,
+        description="Optional file pattern to filter search (e.g., '*.py')",
+    )
+    context_lines: int = Field(
+        default=2,
+        description="Number of context lines to show around matches",
+    )
+    max_results: int = Field(
+        default=50,
+        description="Maximum number of results to return",
+    )
+
+
+class SearchInFilesTool(BaseTool):
+    """Tool to search for text patterns across files in the repository."""
+
+    name: str = "search_in_files"
+    description: str = (
+        "Search for text patterns across files in the repository. "
+        "Returns formatted search results with file paths, line numbers and context."
+    )
+    args_schema: type[BaseModel] = SearchInFilesInput
+
+    repo_path: str
+    file_context: FileContext
+
+    def _run(
+        self,
+        pattern: str,
+        file_pattern: str | None = None,
+        context_lines: int = 2,
+        max_results: int = 50,
+        **kwargs: Any,
+    ) -> str:
+        if file_pattern:
+            print(f"🔧 search_in_files: '{pattern}' in {file_pattern}")
+        else:
+            print(f"🔧 search_in_files: '{pattern}'")
+
+        try:
+            lines = _search_impl(
+                self.repo_path,
+                pattern,
+                file_pattern,
+                context_lines,
+                max_results,
             )
-        )
 
-    return matches
+            # Track the lines in the file context
+            self.file_context.update(lines)
 
+            if not lines:
+                return "No matches found."
 
-@tool
-def search_in_files(
-    runtime: ToolRuntime[Context],
-    pattern: str,
-    file_pattern: str | None = None,
-    context_lines: int = 2,
-    max_results: int = 50,
-    max_line_length: int = 300,
-) -> list[SearchMatch] | ToolMessage:
-    """Search for text patterns across files in the repository.
+            return format_file_lines(lines)
 
-    Lines longer than max_line_length characters will be truncated to prevent
-    massive outputs from minified code or generated files.
-    """
-    if file_pattern:
-        print(f"🔧 search_in_files: '{pattern}' in {file_pattern}")
-    else:
-        print(f"🔧 search_in_files: '{pattern}'")
-    try:
-        return _search_in_files_impl(
-            runtime.context.repo_path,
-            pattern,
-            file_pattern,
-            context_lines,
-            max_results,
-            max_line_length,
-        )
-    except Exception as e:
-        print(f"   ✗ Error: {str(e)}")
-        return ToolMessage(
-            content=f"Error searching for pattern {pattern}: {str(e)}",
-            tool_call_id=runtime.tool_call_id,
-        )
+        except Exception as e:
+            print(f"   ✗ Error: {str(e)}")
+            return f"Error searching for pattern {pattern}: {str(e)}"

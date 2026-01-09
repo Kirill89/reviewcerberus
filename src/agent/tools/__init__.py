@@ -1,9 +1,11 @@
-from .list_files import list_files
-from .read_file_part import read_file_part
-from .search_in_files import search_in_files
+from .file_context import FileContext
+from .list_files import ListFilesTool
+from .read_file_part import ReadFilePartTool
+from .search_in_files import SearchInFilesTool
 
 __all__ = [
-    "read_file_part",
-    "list_files",
-    "search_in_files",
+    "FileContext",
+    "ListFilesTool",
+    "ReadFilePartTool",
+    "SearchInFilesTool",
 ]
