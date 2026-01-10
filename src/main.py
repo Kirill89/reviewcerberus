@@ -12,6 +12,8 @@ from .agent.git_utils import (
     get_repo_root,
 )
 from .agent.runner import run_review
+from .agent.schema import PrimaryReviewOutput
+from .agent.verification import VerifiedReviewOutput, run_verification
 from .config import MODEL_NAME, MODEL_PROVIDER
 
 
@@ -34,6 +36,11 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--instructions",
         help="Path to markdown file with additional instructions for the reviewer",
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="[Experimental] Enable Chain of Verification (CoVe) to reduce false positives",
     )
     return parser.parse_args()
 
@@ -122,6 +129,7 @@ def main() -> None:
     print()
 
     additional_instructions = None
+
     if args.instructions:
         try:
             additional_instructions = Path(args.instructions).read_text()
@@ -130,24 +138,41 @@ def main() -> None:
         except Exception as e:
             print(f"Warning: Could not read instructions file: {e}", file=sys.stderr)
 
-    review_output, token_usage = run_review(
+    review_result = run_review(
         repo_path=repo_path,
         target_branch=args.target_branch,
         changed_files=changed_files,
         additional_instructions=additional_instructions,
     )
 
+    # Optionally run verification
+    final_output: PrimaryReviewOutput | VerifiedReviewOutput
+    total_token_usage = review_result.token_usage
+
+    if args.verify and review_result.output.issues:
+        print()
+        final_output, verify_token_usage = run_verification(
+            primary_output=review_result.output,
+            system_prompt=review_result.system_prompt,
+            user_message=review_result.user_message,
+            file_context=review_result.file_context,
+        )
+        if verify_token_usage and total_token_usage:
+            total_token_usage = total_token_usage + verify_token_usage
+    else:
+        final_output = review_result.output
+
     # Render structured output to markdown and format
-    review_content = render_structured_output(review_output)
+    review_content = render_structured_output(final_output)
     review_content = format_review_content(review_content)
 
     print()
     Path(output_file).write_text(review_content)
     print(f"✓ Review completed and saved to: {output_file}")
 
-    if token_usage:
+    if total_token_usage:
         print()
-        token_usage.print()
+        total_token_usage.print()
 
 
 if __name__ == "__main__":

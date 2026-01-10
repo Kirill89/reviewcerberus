@@ -15,6 +15,9 @@ comprehensive review reports with structured output.
 - **Multi-Provider**: AWS Bedrock, Anthropic API, or Ollama
 - **Smart Analysis**: Context provided upfront with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
+- **Verification Mode**: Experimental
+  [Chain-of-Verification](https://arxiv.org/abs/2309.11495) to reduce false
+  positives
 
 ______________________________________________________________________
 
@@ -57,6 +60,9 @@ poetry run reviewcerberus --repo-path /path/to/repo
 
 # Add custom review guidelines
 poetry run reviewcerberus --instructions guidelines.md
+
+# Enable verification mode (experimental)
+poetry run reviewcerberus --verify
 ```
 
 ### Example Commands
@@ -94,6 +100,17 @@ Every review includes:
 - **Issues Table**: All issues at a glance with severity indicators (🔴 CRITICAL,
   🟠 HIGH, 🟡 MEDIUM, 🟢 LOW)
 - **Detailed Issues**: Each issue with explanation, location, and suggested fix
+
+### Verification Mode (Experimental)
+
+Enable with `--verify` flag to reduce false positives using
+[Chain-of-Verification (CoVe)](https://arxiv.org/abs/2309.11495):
+
+1. **Generate Questions**: Creates falsification questions for each issue
+2. **Answer Questions**: Answers questions using code context
+3. **Score Confidence**: Assigns 1-10 confidence score based on evidence
+
+Each issue in the output includes a confidence score and rationale.
 
 ______________________________________________________________________
 
@@ -196,6 +213,7 @@ docker run --rm -it -v $(pwd):/repo \
 ```bash
 MAX_OUTPUT_TOKENS=10000     # Maximum tokens in response
 RECURSION_LIMIT=200         # Agent recursion limit
+VERIFY_MODEL_NAME=...       # Model for verification (defaults to MODEL_NAME)
 ```
 
 ### Custom Review Prompts
@@ -264,6 +282,7 @@ src/
     ├── schema.py                    # Data models (including structured output)
     ├── git_utils/                   # Git operations (changed files, diffs, commits)
     ├── formatting/                  # Context building and output rendering
+    ├── verification/                # Chain-of-Verification pipeline
     ├── progress_callback_handler.py # Progress display
     └── tools/                       # 3 review tools (read, search, list)
 ```

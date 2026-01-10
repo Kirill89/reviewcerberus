@@ -38,6 +38,9 @@ MODEL_NAME = os.getenv(
 MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "10000"))
 RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "200"))
 
+# Verification model (optional, defaults to MODEL_NAME)
+VERIFY_MODEL_NAME = os.getenv("VERIFY_MODEL_NAME", MODEL_NAME)
+
 # Context management
 CONTEXT_COMPACT_THRESHOLD = int(os.getenv("CONTEXT_COMPACT_THRESHOLD", "140000"))
 MAX_DIFF_PER_FILE = int(os.getenv("MAX_DIFF_PER_FILE", "10000"))  # characters

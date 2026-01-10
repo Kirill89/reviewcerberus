@@ -12,6 +12,9 @@ principles.
 - Structured output with issues organized by severity
 - Multi-provider support (AWS Bedrock, Anthropic API, and Ollama)
 - Automatic context management for large PRs
+- Verification mode using
+  [Chain-of-Verification](https://arxiv.org/abs/2309.11495) to reduce false
+  positives
 
 **Tech Stack:**
 
@@ -184,6 +187,27 @@ All reviews use structured output for consistent, machine-parseable results:
 - Detailed issues section with full explanations
 - Sorted by severity (CRITICAL first)
 
+### 12. Verification Mode (Experimental)
+
+Optional `--verify` flag implements
+[Chain-of-Verification (CoVe)](https://arxiv.org/abs/2309.11495) to reduce false
+positives.
+
+**Pipeline:**
+
+1. Generate falsification questions for each issue
+2. Answer questions using code context
+3. Score confidence (1-10) based on Q&A evidence
+
+**Architecture:**
+
+- Separate `verification/` module with schema, agent, runner, helpers
+- Uses same `create_agent()` API with `response_format` for structured output
+- Token usage tracked and aggregated with primary review
+- Optional `VERIFY_MODEL_NAME` for using different model
+
+See `spec/verification.md` for full details.
+
 ______________________________________________________________________
 
 ## Project Structure
@@ -216,7 +240,13 @@ reviewcerberus/
 │       ├── formatting/                  # Context and output formatting
 │       │   ├── build_review_context.py  # Build initial context message
 │       │   ├── format_review_content.py # Format markdown output
+│       │   ├── format_verification.py   # Verification formatting helpers
 │       │   └── render_structured_output.py  # Render schema to markdown
+│       ├── verification/                # Chain-of-Verification pipeline
+│       │   ├── schema.py                # Verification Pydantic models
+│       │   ├── agent.py                 # 3 verification LLM calls
+│       │   ├── runner.py                # Pipeline orchestration
+│       │   └── helpers.py               # Pure transformation functions
 │       ├── schema.py                    # Data models (Context, ReviewIssue, etc.)
 │       ├── runner.py                    # Agent runner
 │       ├── progress_callback_handler.py # Progress display
@@ -414,6 +444,9 @@ poetry run reviewcerberus --repo-path /path/to/repo
 
 # Additional review instructions
 poetry run reviewcerberus --instructions guidelines.md
+
+# Enable verification mode (experimental)
+poetry run reviewcerberus --verify
 ```
 
 ______________________________________________________________________

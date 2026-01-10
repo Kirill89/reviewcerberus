@@ -1,6 +1,13 @@
 """Render structured review output to markdown format."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from ..schema import IssueSeverity, PrimaryReviewOutput, ReviewIssue
+
+if TYPE_CHECKING:
+    from ..verification.schema import VerifiedReviewIssue, VerifiedReviewOutput
 
 # Severity order for sorting (CRITICAL > HIGH > MEDIUM > LOW)
 _SEVERITY_ORDER = {
@@ -21,12 +28,16 @@ def _get_severity_emoji(severity: IssueSeverity) -> str:
     }.get(severity, "⚪")
 
 
-def _sort_issues(issues: list[ReviewIssue]) -> list[ReviewIssue]:
+def _sort_issues(
+    issues: list[ReviewIssue] | list[VerifiedReviewIssue],
+) -> list[ReviewIssue] | list[VerifiedReviewIssue]:
     """Sort issues by severity (CRITICAL first, then HIGH, MEDIUM, LOW)."""
     return sorted(issues, key=lambda x: _SEVERITY_ORDER.get(x.severity, 99))
 
 
-def _render_issues_summary_table(issues: list[ReviewIssue]) -> str:
+def _render_issues_summary_table(
+    issues: list[ReviewIssue] | list[VerifiedReviewIssue],
+) -> str:
     """Render a summary table of issues.
 
     Args:
@@ -57,7 +68,7 @@ def _render_issues_summary_table(issues: list[ReviewIssue]) -> str:
     return "\n".join(lines)
 
 
-def _render_issue(issue: ReviewIssue, index: int) -> str:
+def render_issue(issue: ReviewIssue | VerifiedReviewIssue, index: int) -> str:
     """Render a single issue to markdown format."""
     severity_emoji = _get_severity_emoji(issue.severity)
 
@@ -74,24 +85,44 @@ def _render_issue(issue: ReviewIssue, index: int) -> str:
         f"### {index}. {issue.title}",
         "",
         f"**Severity:** {severity_emoji} {issue.severity.value}  ",
-        f"**Category:** {issue.category.value}  ",
-        f"**Location:** {locations_str}",
-        "",
-        "#### Explanation",
-        "",
-        issue.explanation,
-        "",
-        "#### Suggested Fix",
-        "",
-        issue.suggested_fix,
-        "",
     ]
+
+    # Add confidence line if this is a verified issue
+    confidence = getattr(issue, "confidence", None)
+    if confidence is not None:
+        rationale = getattr(issue, "rationale", None)
+        rationale_text = f" - {rationale}" if rationale else ""
+        lines.append(f"**Confidence:** {confidence}/10{rationale_text}  ")
+    elif hasattr(issue, "confidence"):
+        # Has confidence attribute but it's None (unverified)
+        lines.append("**Confidence:** unverified  ")
+
+    lines.extend(
+        [
+            f"**Category:** {issue.category.value}  ",
+            f"**Location:** {locations_str}",
+            "",
+            "#### Explanation",
+            "",
+            issue.explanation,
+            "",
+            "#### Suggested Fix",
+            "",
+            issue.suggested_fix,
+            "",
+        ]
+    )
 
     return "\n".join(lines)
 
 
-def render_structured_output(output: PrimaryReviewOutput) -> str:
+def render_structured_output(
+    output: PrimaryReviewOutput | VerifiedReviewOutput,
+) -> str:
     """Render structured review output to markdown format.
+
+    Supports both PrimaryReviewOutput and VerifiedReviewOutput. For verified
+    output, confidence scores are rendered after severity.
 
     Args:
         output: The structured review output from the agent
@@ -122,7 +153,7 @@ def render_structured_output(output: PrimaryReviewOutput) -> str:
 
         # Render each issue
         for idx, issue in enumerate(sorted_issues, 1):
-            sections.append(_render_issue(issue, idx))
+            sections.append(render_issue(issue, idx))
     else:
         sections.append("## Issues Summary")
         sections.append("")
