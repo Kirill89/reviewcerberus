@@ -17,9 +17,9 @@ def assign_issue_ids(issues: list[ReviewIssue]) -> dict[int, ReviewIssue]:
         issues: List of ReviewIssue from primary review
 
     Returns:
-        Dictionary mapping issue ID (0-indexed) to ReviewIssue
+        Dictionary mapping issue ID (1-based) to ReviewIssue
     """
-    return {idx: issue for idx, issue in enumerate(issues)}
+    return {idx: issue for idx, issue in enumerate(issues, 1)}
 
 
 def merge_verification_results(

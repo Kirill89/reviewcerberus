@@ -40,16 +40,16 @@ def test_run_verification() -> None:
         ],
     )
 
-    # Mock responses for each step
+    # Mock responses for each step (using 1-based IDs)
     questions_response = QuestionsOutput(
         issues=[
-            IssueQuestions(issue_id=0, questions=["Is variable checked for null?"]),
+            IssueQuestions(issue_id=1, questions=["Is variable checked for null?"]),
         ]
     )
     answers_response = AnswersOutput(
         issues=[
             IssueAnswers(
-                issue_id=0,
+                issue_id=1,
                 answers=[
                     QuestionAnswer(
                         question="Is variable checked for null?",
@@ -61,7 +61,7 @@ def test_run_verification() -> None:
     )
     verification_response = VerificationOutput(
         issues=[
-            IssueVerification(issue_id=0, confidence=9, rationale="Issue confirmed"),
+            IssueVerification(issue_id=1, confidence=9, rationale="Issue confirmed"),
         ]
     )
 

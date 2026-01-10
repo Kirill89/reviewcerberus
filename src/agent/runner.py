@@ -8,7 +8,7 @@ from .agent import create_review_agent
 from .formatting import build_review_context
 from .git_utils import FileChange
 from .progress_callback_handler import ProgressCallbackHandler
-from .prompts import get_prompt
+from .prompts import build_review_system_prompt
 from .recursion_guard import RecursionGuard
 from .schema import Context, PrimaryReviewOutput
 from .token_usage import TokenUsage
@@ -53,14 +53,8 @@ def run_review(
     # Build the review context with all diffs and commit messages
     user_message = build_review_context(repo_path, target_branch, changed_files)
 
-    # Build system prompt (same logic as create_review_agent)
-    system_prompt = get_prompt("full_review")
-    if additional_instructions:
-        system_prompt = (
-            f"{system_prompt}\n\n"
-            f"## Additional Review Guidelines\n\n"
-            f"{additional_instructions}"
-        )
+    # Build system prompt
+    system_prompt = build_review_system_prompt(additional_instructions)
 
     # Create recursion guard - used as both middleware and callback
     recursion_guard = RecursionGuard()
