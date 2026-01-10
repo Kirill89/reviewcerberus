@@ -13,7 +13,7 @@ def test_full_review_workflow() -> None:
 
         # Run review without progress output for cleaner test logs
         # Use additional instructions to keep the review very brief for faster testing
-        review_output, token_usage = run_review(
+        review_result = run_review(
             repo_path=str(repo_path),
             target_branch="main",
             changed_files=changed_files,
@@ -22,13 +22,13 @@ def test_full_review_workflow() -> None:
         )
 
         # Verify structured output
-        assert isinstance(review_output, PrimaryReviewOutput)
-        assert isinstance(review_output.description, str)
-        assert len(review_output.description) > 50
-        assert isinstance(review_output.issues, list)
+        assert isinstance(review_result.output, PrimaryReviewOutput)
+        assert isinstance(review_result.output.description, str)
+        assert len(review_result.output.description) > 50
+        assert isinstance(review_result.output.issues, list)
 
         # Render and format the output
-        review_content = render_structured_output(review_output)
+        review_content = render_structured_output(review_result.output)
         review_content = format_review_content(review_content)
 
         # Verify rendered content
@@ -36,7 +36,7 @@ def test_full_review_workflow() -> None:
         assert len(review_content) > 100
 
         # Verify token usage is returned
-        assert token_usage is not None
-        assert token_usage.input_tokens > 0
-        assert token_usage.output_tokens > 0
-        assert token_usage.total_tokens > 0
+        assert review_result.token_usage is not None
+        assert review_result.token_usage.input_tokens > 0
+        assert review_result.token_usage.output_tokens > 0
+        assert review_result.token_usage.total_tokens > 0

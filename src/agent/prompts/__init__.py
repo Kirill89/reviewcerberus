@@ -6,11 +6,6 @@ from pathlib import Path
 def get_prompt(name: str) -> str:
     """Load a prompt by name.
 
-    Available prompts:
-    - "full_review" → full_review.md
-    - "context_summary" → context_summary.md
-    - "last_step" → last_step.md
-
     Args:
         name: The prompt name (without .md extension)
 

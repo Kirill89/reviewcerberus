@@ -1,29 +1,27 @@
 import subprocess
+from typing import Any
 
-from langchain_core.messages import ToolMessage
-from langchain_core.tools import tool
-from langgraph.prebuilt import ToolRuntime
-from pydantic import BaseModel
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
 
-from ..schema import Context
-from .helpers import truncate_line
+from ..formatting.format_file_lines import FileLinesMap, format_file_lines
+from .file_context import FileContext
 
 
-class FileContent(BaseModel):
-    file_path: str
-    content: str
-    start_line: int
-    end_line: int
+class ReadFileResult(BaseModel):
+    """Internal result from reading a file."""
+
+    lines: FileLinesMap
     total_lines: int
 
 
-def _read_file_part_impl(
+def _read_file_impl(
     repo_path: str,
     file_path: str,
     start_line: int = 1,
     num_lines: int = 50,
-    max_line_length: int = 500,
-) -> FileContent:
+) -> ReadFileResult:
+    """Read lines from a file and return raw structure."""
     result = subprocess.run(
         ["git", "-C", repo_path, "show", f"HEAD:{file_path}"],
         capture_output=True,
@@ -31,10 +29,9 @@ def _read_file_part_impl(
         check=True,
     )
 
-    lines = result.stdout.splitlines()
-    total_lines = len(lines)
+    all_lines = result.stdout.splitlines()
+    total_lines = len(all_lines)
 
-    # Calculate end_line from start_line + num_lines
     end_line = min(start_line + num_lines - 1, total_lines)
 
     if start_line < 1 or start_line > total_lines:
@@ -42,57 +39,65 @@ def _read_file_part_impl(
             f"Invalid start_line: {start_line} (file has {total_lines} lines)"
         )
 
-    selected_lines = lines[start_line - 1 : end_line]
-    content = "\n".join(
-        f"{i + start_line:6d}\t{truncate_line(line, max_line_length)}"
-        for i, line in enumerate(selected_lines)
+    selected_lines = all_lines[start_line - 1 : end_line]
+
+    lines: FileLinesMap = {
+        file_path: {start_line + i: line for i, line in enumerate(selected_lines)}
+    }
+
+    return ReadFileResult(lines=lines, total_lines=total_lines)
+
+
+class ReadFilePartInput(BaseModel):
+    """Input schema for read_file_part tool."""
+
+    file_path: str = Field(description="Path to the file relative to repository root")
+    start_line: int = Field(
+        default=1,
+        description="Line number to start reading from (1-indexed)",
+    )
+    num_lines: int = Field(
+        default=50,
+        description="Number of lines to read",
     )
 
-    return FileContent(
-        file_path=file_path,
-        content=content,
-        start_line=start_line,
-        end_line=end_line,
-        total_lines=total_lines,
+
+class ReadFilePartTool(BaseTool):
+    """Tool to read a portion of a file starting from a specific line."""
+
+    name: str = "read_file_part"
+    description: str = (
+        "Read a portion of a file starting from a specific line. "
+        "Returns formatted content with line numbers. "
+        "Examples: read_file_part(file_path='src/main.py', start_line=100, num_lines=50)"
     )
+    args_schema: type[BaseModel] = ReadFilePartInput
 
+    repo_path: str
+    file_context: FileContext
 
-@tool
-def read_file_part(
-    runtime: ToolRuntime[Context],
-    file_path: str,
-    start_line: int = 1,
-    num_lines: int = 50,
-    max_line_length: int = 500,
-) -> FileContent | ToolMessage:
-    """Read a portion of a file starting from a specific line.
-
-    Args:
-        file_path: Path to the file relative to repository root
-        start_line: Line number to start reading from (1-indexed). Defaults to 1 (beginning of file).
-        num_lines: Number of lines to read. Defaults to 50. Will read fewer lines if near end of file.
-        max_line_length: Maximum length for each line. Lines longer than this will be truncated. Defaults to 500.
-
-    Returns:
-        File content with line numbers for the specified range.
-
-    Examples:
-        - read_file_part("src/main.py", 100) - reads 50 lines starting from line 100
-        - read_file_part("src/main.py", 100, 20) - reads 20 lines starting from line 100
-        - read_file_part("src/main.py") - reads first 50 lines of the file
-
-    Lines longer than max_line_length will be truncated to prevent massive outputs
-    from minified code or generated files.
-    """
-    print(f"🔧 read_file_part: {file_path} (from line {start_line}, {num_lines} lines)")
-
-    try:
-        return _read_file_part_impl(
-            runtime.context.repo_path, file_path, start_line, num_lines, max_line_length
+    def _run(
+        self,
+        file_path: str,
+        start_line: int = 1,
+        num_lines: int = 50,
+        **kwargs: Any,
+    ) -> str:
+        print(
+            f"🔧 read_file_part: {file_path} (from line {start_line}, {num_lines} lines)"
         )
-    except Exception as e:
-        print(f"   ✗ Error: {str(e)}")
-        return ToolMessage(
-            content=f"Error reading file {file_path}: {str(e)}",
-            tool_call_id=runtime.tool_call_id,
-        )
+
+        try:
+            result = _read_file_impl(self.repo_path, file_path, start_line, num_lines)
+
+            # Track the lines in the file context
+            self.file_context.update(result.lines)
+
+            # Format for output with total lines in header
+            return format_file_lines(
+                result.lines,
+                file_totals={file_path: result.total_lines},
+            )
+        except Exception as e:
+            print(f"   ✗ Error: {str(e)}")
+            return f"Error reading file {file_path}: {str(e)}"

@@ -24,6 +24,9 @@ directory.
 - **Multi-Provider**: AWS Bedrock, Anthropic API, or Ollama
 - **Smart Analysis**: Context provided upfront with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
+- **Verification Mode**: Experimental
+  [Chain-of-Verification](https://arxiv.org/abs/2309.11495) to reduce false
+  positives
 
 ## Usage Examples
 
@@ -103,6 +106,7 @@ Every review includes:
 - `--output`: Output file path or directory
 - `--repo-path`: Path to git repository - default: `/repo`
 - `--instructions`: Path to markdown file with custom review guidelines
+- `--verify`: Enable verification mode to reduce false positives (experimental)
 
 ## Requirements
 

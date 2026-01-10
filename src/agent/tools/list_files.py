@@ -1,11 +1,9 @@
 import fnmatch
 import subprocess
+from typing import Any
 
-from langchain_core.messages import ToolMessage
-from langchain_core.tools import tool
-from langgraph.prebuilt import ToolRuntime
-
-from ..schema import Context
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
 
 
 def _list_files_impl(
@@ -14,11 +12,7 @@ def _list_files_impl(
     pattern: str | None = None,
     max_files: int = 100,
 ) -> list[str]:
-    """List files in repository.
-
-    Returns up to max_files to avoid context explosion. If truncated,
-    the last item in the list will be a warning message.
-    """
+    """List files in repository."""
     result = subprocess.run(
         ["git", "-C", repo_path, "ls-tree", "-r", "--name-only", "HEAD", directory],
         capture_output=True,
@@ -31,7 +25,6 @@ def _list_files_impl(
     if pattern:
         files = [f for f in files if fnmatch.fnmatch(f, pattern)]
 
-    # Truncate if too many files
     total_count = len(files)
     if total_count > max_files:
         files = files[:max_files]
@@ -43,25 +36,45 @@ def _list_files_impl(
     return files
 
 
-@tool
-def list_files(
-    runtime: ToolRuntime[Context], directory: str = ".", pattern: str | None = None
-) -> list[str] | ToolMessage:
-    """List files in the repository or a specific directory.
+class ListFilesInput(BaseModel):
+    """Input schema for list_files tool."""
 
-    Returns up to 100 files to avoid context explosion. If the directory
-    contains more files, results will be truncated with a warning message
-    as the last item in the list.
-    """
-    if pattern:
-        print(f"🔧 list_files: {directory} ({pattern})")
-    else:
-        print(f"🔧 list_files: {directory}")
-    try:
-        return _list_files_impl(runtime.context.repo_path, directory, pattern)
-    except Exception as e:
-        print(f"   ✗ Error: {str(e)}")
-        return ToolMessage(
-            content=f"Error listing files in {directory}: {str(e)}",
-            tool_call_id=runtime.tool_call_id,
-        )
+    directory: str = Field(
+        default=".",
+        description="Directory to list files from (relative to repo root)",
+    )
+    pattern: str | None = Field(
+        default=None,
+        description="Optional glob pattern to filter files (e.g., '*.py')",
+    )
+
+
+class ListFilesTool(BaseTool):
+    """Tool to list files in the repository or a specific directory."""
+
+    name: str = "list_files"
+    description: str = (
+        "List files in the repository or a specific directory. "
+        "Returns up to 100 files to avoid context explosion."
+    )
+    args_schema: type[BaseModel] = ListFilesInput
+
+    repo_path: str
+
+    def _run(
+        self,
+        directory: str = ".",
+        pattern: str | None = None,
+        **kwargs: Any,
+    ) -> str:
+        if pattern:
+            print(f"🔧 list_files: {directory} ({pattern})")
+        else:
+            print(f"🔧 list_files: {directory}")
+
+        try:
+            files = _list_files_impl(self.repo_path, directory, pattern)
+            return "\n".join(files)
+        except Exception as e:
+            print(f"   ✗ Error: {str(e)}")
+            return f"Error listing files in {directory}: {str(e)}"

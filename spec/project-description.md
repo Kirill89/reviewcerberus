@@ -18,6 +18,9 @@ Simple command-line interface with sensible defaults:
 - **Output File**: `review_{current_branch_name}.md` (default) or user-specified
 - **Additional Instructions**: Optional markdown file with custom review
   guidelines
+- **Verification Mode**: Optional `--verify` flag enables
+  [Chain-of-Verification](https://arxiv.org/abs/2309.11495) to reduce false
+  positives
 
 The tool always reviews the currently checked out branch against the target
 branch.

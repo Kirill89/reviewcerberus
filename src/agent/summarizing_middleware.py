@@ -1,5 +1,6 @@
 from typing import Any
 
+from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import (
     AIMessage,
@@ -8,19 +9,19 @@ from langchain_core.messages import (
 )
 from langchain_core.messages.utils import count_tokens_approximately
 from langgraph.runtime import Runtime
-from langgraph.typing import ContextT, StateT
 
 from ..config import CONTEXT_COMPACT_THRESHOLD
 from .prompts import get_prompt
+from .schema import Context
 
 
-class SummarizingMiddleware(AgentMiddleware):
+class SummarizingMiddleware(AgentMiddleware[AgentState[Any], Context]):
     def __init__(self) -> None:
         super().__init__()
         self.summary_requested = False
 
     def before_model(
-        self, state: StateT, runtime: Runtime[ContextT]
+        self, state: AgentState[Any], runtime: Runtime[Context]
     ) -> dict[str, Any] | None:
         messages = state["messages"]  # type: ignore[index]
         total_tokens = count_tokens_approximately(messages)
@@ -41,7 +42,7 @@ class SummarizingMiddleware(AgentMiddleware):
         return None
 
     def after_model(
-        self, state: StateT, runtime: Runtime[ContextT]
+        self, state: AgentState[Any], runtime: Runtime[Context]
     ) -> dict[str, Any] | None:
         if not self.summary_requested:
             return None
@@ -51,7 +52,8 @@ class SummarizingMiddleware(AgentMiddleware):
         remove_messages = []
 
         for message in messages[1:]:
-            remove_messages.append(RemoveMessage(id=message.id))
+            if message.id is not None:
+                remove_messages.append(RemoveMessage(id=message.id))
 
         last_message_with_tools = next(
             m
