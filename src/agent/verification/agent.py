@@ -3,18 +3,32 @@
 from typing import Any
 
 from langchain.agents import create_agent
+from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.language_models import BaseChatModel
 
-from ...config import MAX_OUTPUT_TOKENS, MODEL_PROVIDER, VERIFY_MODEL_NAME
+from ...config import (
+    MAX_OUTPUT_TOKENS,
+    MODEL_PROVIDER,
+    RECURSION_LIMIT,
+    VERIFY_MODEL_NAME,
+)
 from ..formatting.format_verification import (
     format_issues_with_answers,
     format_issues_with_ids,
     format_questions_with_ids,
 )
+from ..progress_callback_handler import ProgressCallbackHandler
 from ..prompts import get_prompt
 from ..providers import PROVIDER_REGISTRY
+from ..recursion_guard import RecursionGuard
 from ..schema import ReviewIssue
 from ..token_usage import TokenUsage
+from ..tools import (
+    FileContext,
+    ListFilesTool,
+    ReadFilePartTool,
+    SearchInFilesTool,
+)
 from .schema import (
     AnswersOutput,
     QuestionsOutput,
@@ -125,14 +139,23 @@ def answer_questions(
     user_message: str,
     file_context: str,
     questions: QuestionsOutput,
+    repo_path: str,
+    file_context_tracker: FileContext,
+    show_progress: bool = True,
 ) -> tuple[AnswersOutput, TokenUsage | None]:
     """Step 2: Call LLM to answer verification questions from code context.
+
+    This step has access to tools (read_file_part, search_in_files, list_files)
+    to gather additional evidence when answering questions.
 
     Args:
         system_prompt: Original review system prompt
         user_message: Original review user message (diffs, commits)
         file_context: File content read during review (markdown)
         questions: Questions generated in step 1
+        repo_path: Path to the git repository
+        file_context_tracker: FileContext for tracking additional file reads
+        show_progress: Whether to show progress messages
 
     Returns:
         Tuple of (AnswersOutput, TokenUsage or None)
@@ -145,11 +168,49 @@ def answer_questions(
         questions_with_ids=format_questions_with_ids(questions),
     )
 
-    return _invoke_agent(
+    # Create tools for additional code exploration
+    tools = [
+        ReadFilePartTool(repo_path=repo_path, file_context=file_context_tracker),
+        SearchInFilesTool(repo_path=repo_path, file_context=file_context_tracker),
+        ListFilesTool(repo_path=repo_path),
+    ]
+
+    # Create recursion guard
+    recursion_guard = RecursionGuard()
+
+    model = get_verification_model()
+    agent: Any = create_agent(
+        model=model,
         system_prompt=prompt,
-        user_message="Answer the verification questions based on the code.",
+        tools=tools,
+        middleware=[recursion_guard],
         response_format=AnswersOutput,
     )
+
+    callbacks: list[BaseCallbackHandler] = [recursion_guard]
+    if show_progress:
+        callbacks.append(ProgressCallbackHandler())
+
+    response = agent.invoke(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Answer the verification questions based on the code.",
+                }
+            ],
+        },
+        config={
+            "callbacks": callbacks,
+            "recursion_limit": RECURSION_LIMIT,
+        },
+    )
+
+    if "structured_response" not in response:
+        raise ValueError("Verification agent did not return structured output")
+
+    token_usage = TokenUsage.from_response(response)
+    return response["structured_response"], token_usage
 
 
 def score_issues(
