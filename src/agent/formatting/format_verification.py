@@ -8,15 +8,13 @@ from .render_structured_output import render_issue
 
 
 def format_issues_with_ids(issues: list[ReviewIssue]) -> str:
-    """Format issues with IDs for prompt injection.
+    """Format issues with IDs for verification prompts.
 
-    Uses render_issue for consistent formatting, with 0-based indexing
-    for issue ID correlation during verification.
+    Uses 1-based issue IDs for consistency with rendered output.
     """
     parts = []
-    for idx, issue in enumerate(issues):
-        rendered = render_issue(issue, idx)
-        parts.append(rendered)
+    for idx, issue in enumerate(issues, 1):
+        parts.append(render_issue(issue, idx))
     return "\n".join(parts)
 
 
@@ -39,7 +37,7 @@ def format_issues_with_answers(
     lines = []
     answers_by_id: dict[int, IssueAnswers] = {ia.issue_id: ia for ia in answers.issues}
 
-    for idx, issue in enumerate(issues):
+    for idx, issue in enumerate(issues, 1):
         lines.append(f"### Issue {idx}: {issue.title}")
         lines.append("")
         lines.append(f"**Explanation:** {issue.explanation}")

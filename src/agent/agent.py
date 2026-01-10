@@ -4,7 +4,7 @@ from langchain.agents import create_agent
 
 from .checkpointer import checkpointer
 from .model import model
-from .prompts import get_prompt
+from .prompts import build_review_system_prompt
 from .recursion_guard import RecursionGuard
 from .schema import Context, PrimaryReviewOutput
 from .summarizing_middleware import SummarizingMiddleware
@@ -34,14 +34,7 @@ def create_review_agent(
     Returns:
         Tuple of (configured agent instance, FileContext used by the agent)
     """
-    system_prompt = get_prompt("full_review")
-
-    if additional_instructions:
-        system_prompt = (
-            f"{system_prompt}\n\n"
-            f"## Additional Review Guidelines\n\n"
-            f"{additional_instructions}"
-        )
+    system_prompt = build_review_system_prompt(additional_instructions)
 
     # Create FileContext for tracking file content
     file_context = FileContext()
