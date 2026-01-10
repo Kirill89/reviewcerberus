@@ -1,7 +1,7 @@
 """Tests for verification runner."""
 
 from typing import Any
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from src.agent.schema import (
     IssueCategory,
@@ -68,7 +68,7 @@ def test_run_verification() -> None:
     responses = [questions_response, answers_response, verification_response]
     call_index = 0
 
-    def mock_invoke(input_dict: dict[str, Any]) -> dict[str, Any]:
+    def mock_invoke(input_dict: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         nonlocal call_index
         result = {"structured_response": responses[call_index], "messages": []}
         call_index += 1
@@ -85,20 +85,27 @@ def test_run_verification() -> None:
             system_prompt="Review prompt",
             user_message="Diff content",
             file_context=FileContext(),
+            repo_path="/test/repo",
             show_progress=False,
         )
 
     # Verify create_agent called 3 times with correct response_format
     assert mock_create_agent.call_count == 3
-    assert mock_create_agent.call_args_list[0] == call(
-        model=mock_create_agent.call_args_list[0].kwargs["model"],
-        system_prompt=mock_create_agent.call_args_list[0].kwargs["system_prompt"],
-        tools=[],
-        response_format=QuestionsOutput,
+
+    # Step 1 (generate_questions): no tools
+    assert mock_create_agent.call_args_list[0].kwargs["tools"] == []
+    assert (
+        mock_create_agent.call_args_list[0].kwargs["response_format"] == QuestionsOutput
     )
+
+    # Step 2 (answer_questions): has tools
+    assert len(mock_create_agent.call_args_list[1].kwargs["tools"]) == 3
     assert (
         mock_create_agent.call_args_list[1].kwargs["response_format"] == AnswersOutput
     )
+
+    # Step 3 (score_issues): no tools
+    assert mock_create_agent.call_args_list[2].kwargs["tools"] == []
     assert (
         mock_create_agent.call_args_list[2].kwargs["response_format"]
         == VerificationOutput

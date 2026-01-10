@@ -22,6 +22,7 @@ def run_verification(
     system_prompt: str,
     user_message: str,
     file_context: FileContext,
+    repo_path: str,
     show_progress: bool = True,
 ) -> tuple[VerifiedReviewOutput, TokenUsage | None]:
     """Main entry point. Orchestrates steps 0.5->1->2->3->3.5.
@@ -35,6 +36,7 @@ def run_verification(
         system_prompt: Original review system prompt
         user_message: Original review user message (diffs, commits)
         file_context: FileContext with file content read during review
+        repo_path: Path to the git repository (for answer agent tools)
         show_progress: Whether to show progress messages
 
     Returns:
@@ -68,14 +70,18 @@ def run_verification(
     if usage1:
         token_usage = usage1
 
-    # Step 2: Answer questions
+    # Step 2: Answer questions (with tools for additional code exploration)
     if show_progress:
         _show_progress(2)
+        print()  # New line before potential tool output
     answers, usage2 = answer_questions(
         system_prompt=system_prompt,
         user_message=user_message,
         file_context=file_context_md,
         questions=questions,
+        repo_path=repo_path,
+        file_context_tracker=file_context,
+        show_progress=show_progress,
     )
     if usage2:
         token_usage = token_usage + usage2 if token_usage else usage2

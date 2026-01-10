@@ -156,6 +156,7 @@ def main() -> None:
             system_prompt=review_result.system_prompt,
             user_message=review_result.user_message,
             file_context=review_result.file_context,
+            repo_path=repo_path,
         )
         if verify_token_usage and total_token_usage:
             total_token_usage = total_token_usage + verify_token_usage
