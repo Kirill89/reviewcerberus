@@ -26,3 +26,27 @@ jobs:
         run: make lint
       - name: Run tests (excluding integration)
         run: poetry run pytest -v --ignore=tests/test_integration.py
+
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get version from pyproject.toml
+        id: version
+        run: |
+          VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Checking version: $VERSION"
+      - name: Check if version exists on PyPI
+        run: |
+          PACKAGE_NAME="reviewcerberus"
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://pypi.org/pypi/${PACKAGE_NAME}/${VERSION}/json")
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "::error::Version ${VERSION} already exists on PyPI. Please bump the version in pyproject.toml"
+            exit 1
+          elif [ "$HTTP_STATUS" = "404" ]; then
+            echo "Version ${VERSION} is available"
+          else
+            echo "::warning::Unexpected response from PyPI (HTTP ${HTTP_STATUS}), skipping check"
+          fi
