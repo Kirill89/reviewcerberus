@@ -17,3 +17,4 @@ poetry.lock
 
 # Generated reviews
 review_*.md
+review_*.json

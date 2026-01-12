@@ -1,4 +1,5 @@
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -42,6 +43,11 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="[Experimental] Enable Chain of Verification (CoVe) to reduce false positives",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output review as JSON instead of markdown",
+    )
     return parser.parse_args()
 
 
@@ -49,9 +55,10 @@ def sanitize_branch_name(branch: str) -> str:
     return re.sub(r"[^\w\-.]", "_", branch)
 
 
-def determine_output_file(output: str | None, branch: str) -> str:
+def determine_output_file(output: str | None, branch: str, json_output: bool) -> str:
     safe_branch_name = sanitize_branch_name(branch)
-    default_filename = f"review_{safe_branch_name}.md"
+    extension = "json" if json_output else "md"
+    default_filename = f"review_{safe_branch_name}.{extension}"
 
     if not output:
         return default_filename
@@ -109,7 +116,7 @@ def main() -> None:
         print(f"Error: Could not determine current branch: {e.stderr}", file=sys.stderr)
         sys.exit(1)
 
-    output_file = determine_output_file(args.output, current_branch)
+    output_file = determine_output_file(args.output, current_branch, args.json)
     print_summary(repo_path, current_branch, args.target_branch, output_file)
     print_model_config(has_instructions=bool(args.instructions))
 
@@ -163,11 +170,14 @@ def main() -> None:
     else:
         final_output = review_result.output
 
-    # Render structured output to markdown and format
-    review_content = render_structured_output(final_output)
-    review_content = format_review_content(review_content)
-
+    # Render output
     print()
+    if args.json:
+        review_content = json.dumps(final_output.model_dump(), indent=2)
+    else:
+        review_content = render_structured_output(final_output)
+        review_content = format_review_content(review_content)
+
     Path(output_file).write_text(review_content)
     print(f"✓ Review completed and saved to: {output_file}")
 

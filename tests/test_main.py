@@ -20,14 +20,23 @@ def test_determine_output_file() -> None:
     """Test output file determination for different scenarios."""
     branch = "feature/test"
 
-    # No output specified - should return default filename
-    assert determine_output_file(None, branch) == "review_feature_test.md"
+    # No output specified - should return default filename (markdown)
+    assert determine_output_file(None, branch, False) == "review_feature_test.md"
+
+    # No output specified - should return default filename (json)
+    assert determine_output_file(None, branch, True) == "review_feature_test.json"
 
     # Specific file path specified - should return as-is
-    assert determine_output_file("/tmp/custom.md", branch) == "/tmp/custom.md"
+    assert determine_output_file("/tmp/custom.md", branch, False) == "/tmp/custom.md"
 
     # Directory specified - should append default filename
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = determine_output_file(tmpdir, branch)
+        result = determine_output_file(tmpdir, branch, False)
         expected = str(Path(tmpdir) / "review_feature_test.md")
+        assert result == expected
+
+    # Directory specified with json - should append default json filename
+    with tempfile.TemporaryDirectory() as tmpdir:
+        result = determine_output_file(tmpdir, branch, True)
+        expected = str(Path(tmpdir) / "review_feature_test.json")
         assert result == expected
