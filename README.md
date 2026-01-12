@@ -55,6 +55,9 @@ poetry run reviewcerberus --target-branch develop
 poetry run reviewcerberus --output /path/to/review.md
 poetry run reviewcerberus --output /path/to/dir/  # Auto-generates filename
 
+# Output as JSON instead of markdown
+poetry run reviewcerberus --json
+
 # Different repository
 poetry run reviewcerberus --repo-path /path/to/repo
 
