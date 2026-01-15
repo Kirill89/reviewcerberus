@@ -591,7 +591,7 @@ jobs:
         with:
           fetch-depth: 0  # Full history for diff
 
-      - uses: Kirill89/reviewcerberus@v1
+      - uses: Kirill89/reviewcerberus/action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           verify: "true"

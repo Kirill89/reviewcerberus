@@ -62,7 +62,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Kirill89/reviewcerberus@v1
+      - uses: Kirill89/reviewcerberus/action@v1
         with:
           model_provider: anthropic
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -282,7 +282,7 @@ Use ReviewCerberus as a GitHub Action for automated PR reviews.
 ### Example with Verification
 
 ```yaml
-- uses: Kirill89/reviewcerberus@v1
+- uses: Kirill89/reviewcerberus/action@v1
   with:
     model_provider: anthropic
     anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -293,7 +293,7 @@ Use ReviewCerberus as a GitHub Action for automated PR reviews.
 ### Example with AWS Bedrock
 
 ```yaml
-- uses: Kirill89/reviewcerberus@v1
+- uses: Kirill89/reviewcerberus/action@v1
   with:
     model_provider: bedrock
     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
