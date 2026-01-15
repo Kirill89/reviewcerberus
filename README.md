@@ -9,6 +9,7 @@ comprehensive review reports with structured output.
 
 ## Key Features
 
+- **GitHub Action**: Automated PR reviews with inline comments and summary
 - **Comprehensive Reviews**: Detailed analysis of logic, security, performance,
   and code quality
 - **Structured Output**: Issues organized by severity with summary table
@@ -37,6 +38,38 @@ docker run --rm -it -v $(pwd):/repo \
 directory.
 
 See [Configuration](#configuration) for AWS Bedrock setup and other options.
+
+### GitHub Action
+
+For automated PR reviews, add to `.github/workflows/review.yml`:
+
+```yaml
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Kirill89/reviewcerberus@v1
+        with:
+          model_provider: anthropic
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+The action posts review comments directly on your PR. See
+[GitHub Action](#github-action-1) for all options.
 
 ______________________________________________________________________
 
@@ -228,6 +261,55 @@ Customize prompts in `src/agent/prompts/`:
 
 ______________________________________________________________________
 
+## GitHub Action
+
+Use ReviewCerberus as a GitHub Action for automated PR reviews.
+
+### Action Inputs
+
+| Input | Description | Default |
+| -- | -- | -- |
+| `model_provider` | Provider: `bedrock`, `anthropic`, or `ollama` | `bedrock` |
+| `anthropic_api_key` | Anthropic API key | - |
+| `aws_access_key_id` | AWS Access Key ID (Bedrock) | - |
+| `aws_secret_access_key` | AWS Secret Access Key (Bedrock) | - |
+| `aws_region_name` | AWS Region (Bedrock) | `us-east-1` |
+| `model_name` | Model name (provider-specific) | - |
+| `verify` | Enable Chain-of-Verification | `false` |
+| `min_confidence` | Min confidence score 1-10 (requires verify) | - |
+| `instructions` | Path to custom review guidelines | - |
+
+### Example with Verification
+
+```yaml
+- uses: Kirill89/reviewcerberus@v1
+  with:
+    model_provider: anthropic
+    anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+    verify: "true"
+    min_confidence: "7"
+```
+
+### Example with AWS Bedrock
+
+```yaml
+- uses: Kirill89/reviewcerberus@v1
+  with:
+    model_provider: bedrock
+    aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    aws_region_name: us-east-1
+```
+
+### What the Action Does
+
+1. Runs the review using the Docker image
+2. Resolves any existing review threads from previous runs
+3. Posts a summary comment with all issues
+4. Creates inline review comments on specific lines
+
+______________________________________________________________________
+
 ## Development
 
 ### Local Installation
@@ -274,20 +356,25 @@ details.
 ### Project Structure
 
 ```
-src/
-├── config.py                        # Configuration
-├── main.py                          # CLI entry point
-└── agent/
-    ├── agent.py                     # Agent setup
-    ├── model.py                     # Model initialization
-    ├── runner.py                    # Review execution
-    ├── prompts/                     # Review prompts
-    ├── schema.py                    # Data models (including structured output)
-    ├── git_utils/                   # Git operations (changed files, diffs, commits)
-    ├── formatting/                  # Context building and output rendering
-    ├── verification/                # Chain-of-Verification pipeline
-    ├── progress_callback_handler.py # Progress display
-    └── tools/                       # 3 review tools (read, search, list)
+├── src/                             # Python CLI
+│   ├── config.py                    # Configuration
+│   ├── main.py                      # CLI entry point
+│   └── agent/
+│       ├── agent.py                 # Agent setup
+│       ├── model.py                 # Model initialization
+│       ├── runner.py                # Review execution
+│       ├── prompts/                 # Review prompts
+│       ├── schema.py                # Data models (structured output)
+│       ├── git_utils/               # Git operations
+│       ├── formatting/              # Context and output rendering
+│       ├── verification/            # Chain-of-Verification pipeline
+│       ├── progress_callback_handler.py
+│       └── tools/                   # 3 review tools
+│
+└── action/                          # GitHub Action (TypeScript)
+    ├── action.yml                   # Action definition
+    ├── src/                         # Action source code
+    └── dist/                        # Bundled action
 ```
 
 ### Code Quality Standards
