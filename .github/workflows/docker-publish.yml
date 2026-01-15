@@ -53,3 +53,27 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: kirill89/reviewcerberus-cli
           readme-filepath: ./DOCKERHUB.md
+
+      - name: Create git tags
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          VERSION="v${{ steps.version.outputs.VERSION }}"
+          MAJOR_VERSION=$(echo "$VERSION" | cut -d. -f1)
+
+          # Create version tag (e.g., v1.2.0)
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists, skipping"
+          else
+            git tag -a "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION"
+            echo "Created tag $VERSION"
+          fi
+
+          # Update major version tag (e.g., v1) - force update to latest
+          git tag -fa "$MAJOR_VERSION" -m "Latest $MAJOR_VERSION release"
+          git push origin "$MAJOR_VERSION" --force
+          echo "Updated tag $MAJOR_VERSION -> $VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

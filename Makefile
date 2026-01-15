@@ -7,12 +7,12 @@ lint:
 	poetry run mypy src tests
 	poetry run isort --check-only src tests
 	poetry run black --check src tests
-	find . -name '*.md' -not -path './.pytest_cache/*' -not -path './.venv/*' -print0 | xargs -0 poetry run mdformat --check --compact-tables --wrap 80 --number
+	find . -name '*.md' -not -path './.pytest_cache/*' -not -path './.venv/*' -not -path './action/node_modules/*' -print0 | xargs -0 poetry run mdformat --check --compact-tables --wrap 80 --number
 	poetry run autoflake --check --remove-all-unused-imports --remove-unused-variables --recursive src tests
 
 format:
 	poetry run autoflake --in-place --remove-all-unused-imports --remove-unused-variables --recursive src tests
-	find . -name '*.md' -not -path './.pytest_cache/*' -not -path './.venv/*' -print0 | xargs -0 poetry run mdformat --compact-tables --wrap 80 --number
+	find . -name '*.md' -not -path './.pytest_cache/*' -not -path './.venv/*' -not -path './action/node_modules/*' -print0 | xargs -0 poetry run mdformat --compact-tables --wrap 80 --number
 	poetry run isort src tests
 	poetry run black src tests
 

@@ -1,0 +1,71 @@
+name: "ReviewCerberus"
+description: "AI-powered code review for pull requests"
+author: "Kirill"
+branding:
+  icon: "eye"
+  color: "orange"
+
+inputs:
+  # Provider selection
+  model_provider:
+    description: "Model provider: bedrock, anthropic, or ollama"
+    required: false
+    default: "bedrock"
+
+  # AWS Bedrock
+  aws_access_key_id:
+    description: "AWS Access Key ID (for Bedrock)"
+    required: false
+  aws_secret_access_key:
+    description: "AWS Secret Access Key (for Bedrock)"
+    required: false
+  aws_region_name:
+    description: "AWS Region (for Bedrock)"
+    required: false
+    default: "us-east-1"
+
+  # Anthropic
+  anthropic_api_key:
+    description: "Anthropic API key"
+    required: false
+
+  # Ollama
+  ollama_base_url:
+    description: "Ollama base URL"
+    required: false
+    default: "http://localhost:11434"
+
+  # Model settings
+  model_name:
+    description: "Model name (provider-specific)"
+    required: false
+  max_output_tokens:
+    description: "Maximum tokens in response"
+    required: false
+
+  # Review settings
+  verify:
+    description: "Enable Chain-of-Verification"
+    required: false
+    default: "false"
+  verify_model_name:
+    description: "Model for verification (defaults to model_name)"
+    required: false
+  instructions:
+    description: "Path to markdown file with additional instructions"
+    required: false
+
+  # Filtering
+  min_confidence:
+    description: "Minimum confidence score (1-10), issues with confidence >= this value are reported (requires verify)"
+    required: false
+
+  # GitHub token (automatically provided)
+  github_token:
+    description: "GitHub token for API access"
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

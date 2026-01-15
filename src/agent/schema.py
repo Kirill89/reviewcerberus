@@ -48,7 +48,7 @@ class ReviewIssue(BaseModel):
     category: IssueCategory = Field(description="Category of the issue")
     severity: IssueSeverity = Field(description="Severity level of the issue")
     location: list[IssueLocation] = Field(
-        description="List of file locations where the issue occurs"
+        min_length=1, description="List of file locations where the issue occurs"
     )
     explanation: str = Field(
         description="Detailed explanation of the issue in markdown format, can include code samples"
