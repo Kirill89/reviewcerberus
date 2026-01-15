@@ -2,12 +2,17 @@
 
 ## Overview
 
-A minimalist CLI tool that performs automated code reviews using AI models. The
-tool analyzes Git branch differences and generates comprehensive review reports
-in Markdown format with structured output for consistent, machine-parseable
-results.
+A minimalist code review tool that performs automated code reviews using AI
+models. Available as both a CLI tool and a GitHub Action. Analyzes Git branch
+differences and generates comprehensive review reports with structured output
+for consistent, machine-parseable results.
 
 ## Core Features
+
+### Deployment Options
+
+- **GitHub Action**: Automated PR reviews with inline comments and summary
+- **CLI/Docker**: Local reviews with markdown output
 
 ### CLI Interface
 
@@ -24,6 +29,15 @@ Simple command-line interface with sensible defaults:
 
 The tool always reviews the currently checked out branch against the target
 branch.
+
+### GitHub Action
+
+The action wraps the CLI and provides:
+
+- Inline review comments on specific lines
+- Summary comment with all issues
+- Automatic resolution of previous review threads on re-runs
+- Filtering by confidence level (when verification is enabled)
 
 ### Git Integration
 
@@ -79,12 +93,20 @@ The agent also has access to these tools for additional analysis:
 
 ### Components
 
+**Python CLI:**
+
 1. **CLI Parser**: Handle command-line arguments and defaults
 2. **Git Interface**: Interact with Git to get diffs, file lists, and content
 3. **AI Provider Layer**: Factory pattern with support for Bedrock, Anthropic,
    and Ollama
 4. **LangChain Agent**: Orchestrate tools and AI to perform reviews
 5. **Report Generator**: Format and write Markdown review reports
+
+**GitHub Action (TypeScript):**
+
+1. **Docker Runner**: Execute CLI via Docker with `--json` output
+2. **GitHub API**: Post comments and reviews via Octokit
+3. **Renderer**: Convert JSON output to markdown comments
 
 ### Workflow
 

@@ -4,7 +4,7 @@
 
 AI-powered code review tool that analyzes Git branch differences and generates
 comprehensive review reports. Built with minimalism and token efficiency as core
-principles.
+principles. Available as CLI/Docker or GitHub Action.
 
 **Key Features:**
 
@@ -15,6 +15,7 @@ principles.
 - Verification mode using
   [Chain-of-Verification](https://arxiv.org/abs/2309.11495) to reduce false
   positives
+- GitHub Action for automated PR reviews with inline comments
 
 **Tech Stack:**
 
@@ -208,13 +209,40 @@ positives.
 
 See `spec/verification.md` for full details.
 
+### 13. GitHub Action
+
+Isolated TypeScript wrapper that calls the CLI and posts results to GitHub.
+
+**Design Principle:** The action is completely isolated from Python code. It:
+
+1. Runs Docker image with `--json` flag
+2. Parses JSON output
+3. Posts comments to GitHub via Octokit
+
+**Key Features:**
+
+- Native Node.js action (fast startup)
+- Runs Docker via `@actions/exec`
+- Uses `@actions/github` (Octokit) for GitHub API
+- Resolves previous review threads on re-runs
+- Supports confidence filtering (with `--verify`)
+
+**Components:**
+
+- `src/index.ts` - Entry point, orchestration
+- `src/review.ts` - Run Docker, parse output
+- `src/github.ts` - GitHub API (comments, reviews, threads)
+- `src/render.ts` - Render issues to markdown
+
+See `spec/gh-action.md` for full details.
+
 ______________________________________________________________________
 
 ## Project Structure
 
 ```
 reviewcerberus/
-├── src/
+├── src/                                 # Python CLI
 │   ├── config.py                        # Configuration (env vars)
 │   ├── main.py                          # CLI entry point
 │   └── agent/
@@ -252,6 +280,20 @@ reviewcerberus/
 │       ├── progress_callback_handler.py # Progress display
 │       └── tools/                       # 3 review tools
 │
+├── action/                        # GitHub Action (TypeScript)
+│   ├── action.yml                 # Action definition
+│   ├── package.json               # Dependencies
+│   ├── tsconfig.json
+│   ├── vitest.config.ts
+│   ├── src/
+│   │   ├── index.ts               # Entry point
+│   │   ├── review.ts              # Run Docker, parse output
+│   │   ├── github.ts              # GitHub API operations
+│   │   ├── render.ts              # Issue rendering
+│   │   └── types.ts               # TypeScript interfaces
+│   ├── __tests__/                 # Unit tests
+│   └── dist/                      # Bundled output (committed)
+│
 ├── tests/                         # Integration tests
 │   └── agent/
 │       ├── git_utils/             # Tests for git utilities
@@ -260,6 +302,7 @@ reviewcerberus/
 └── spec/                          # Documentation
     ├── project-description.md
     ├── tools-specification.md
+    ├── gh-action.md               # GitHub Action spec
     └── implementation-summary.md  (this file)
 ```
 
@@ -358,6 +401,15 @@ ______________________________________________________________________
 4. Export from tools/__init__.py
 5. Register in agent.py tools list
 6. Update spec/tools-specification.md
+
+### Modifying GitHub Action
+
+1. Make changes in `action/src/`
+2. Run tests: `cd action && npm test`
+3. Lint: `npm run lint`
+4. Build: `npm run build`
+5. Commit updated `dist/index.js` (bundled output)
+6. Update `spec/gh-action.md` if architecture changes
 
 ### Code Style
 
