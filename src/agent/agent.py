@@ -18,16 +18,12 @@ from .tools import (
 
 def create_review_agent(
     repo_path: str,
-    recursion_guard: RecursionGuard,
     additional_instructions: str | None = None,
 ) -> tuple[Any, FileContext]:
     """Create a review agent with optional additional instructions.
 
     Args:
         repo_path: Path to the git repository
-        recursion_guard: RecursionGuard instance that tracks steps and forces
-                        output when approaching recursion limit. Must also be
-                        passed to invoke config callbacks.
         additional_instructions: Optional additional review guidelines to append
                                 to the system prompt
 
@@ -54,7 +50,7 @@ def create_review_agent(
         checkpointer=checkpointer,
         middleware=[
             SummarizingMiddleware(),
-            recursion_guard,
+            RecursionGuard(),
         ],
         response_format=PrimaryReviewOutput,
     )
