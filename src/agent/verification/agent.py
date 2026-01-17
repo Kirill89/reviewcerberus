@@ -9,7 +9,6 @@ from langchain_core.language_models import BaseChatModel
 from ...config import (
     MAX_OUTPUT_TOKENS,
     MODEL_PROVIDER,
-    RECURSION_LIMIT,
     VERIFY_MODEL_NAME,
 )
 from ..formatting.format_verification import (
@@ -175,19 +174,18 @@ def answer_questions(
         ListFilesTool(repo_path=repo_path),
     ]
 
-    # Create recursion guard
-    recursion_guard = RecursionGuard()
-
     model = get_verification_model()
     agent: Any = create_agent(
         model=model,
         system_prompt=prompt,
         tools=tools,
-        middleware=[recursion_guard],
+        middleware=[
+            RecursionGuard(),
+        ],
         response_format=AnswersOutput,
     )
 
-    callbacks: list[BaseCallbackHandler] = [recursion_guard]
+    callbacks: list[BaseCallbackHandler] = []
     if show_progress:
         callbacks.append(ProgressCallbackHandler())
 
@@ -202,7 +200,6 @@ def answer_questions(
         },
         config={
             "callbacks": callbacks,
-            "recursion_limit": RECURSION_LIMIT,
         },
     )
 

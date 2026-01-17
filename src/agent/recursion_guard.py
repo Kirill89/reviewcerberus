@@ -2,49 +2,47 @@ from typing import Any
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain_core.callbacks import BaseCallbackHandler
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, ToolMessage
 from langgraph.runtime import Runtime
 
-from ..config import RECURSION_LIMIT
+from ..config import TOOL_CALL_LIMIT
 from .prompts import get_prompt
 from .schema import Context
 
-# Reserve steps for the model to generate final structured output
-STEPS_BUFFER = 4
+
+class ToolCallLimitExceeded(Exception):
+    """Raised when the agent exceeds the tool call limit."""
 
 
-class RecursionGuard(AgentMiddleware[AgentState[Any], Context], BaseCallbackHandler):
-    """Middleware and callback that forces final output before hitting recursion limit.
+class RecursionGuard(AgentMiddleware[AgentState[Any], Context]):
+    """Middleware that forces final output when approaching tool call limit.
 
-    This class serves dual purposes:
-    1. As a BaseCallbackHandler: tracks graph steps via on_chain_start
-    2. As an AgentMiddleware: injects a message forcing output when approaching limit
-
-    The same instance must be passed to both the agent middleware list and
-    the invoke config callbacks list.
+    Counts ToolMessage instances in the message history. When the count reaches
+    TOOL_CALL_LIMIT, injects a warning message. If the model continues making
+    tool calls after the warning, raises ToolCallLimitExceeded.
     """
 
     def __init__(self) -> None:
-        AgentMiddleware.__init__(self)
-        BaseCallbackHandler.__init__(self)
-        self.step_count = 0
-
-    def on_chain_start(
-        self, serialized: dict[str, Any], inputs: dict[str, Any], **kwargs: Any
-    ) -> None:
-        """Track each graph step execution."""
-        self.step_count += 1
+        super().__init__()
+        self.warned_at_count: int | None = None
 
     def before_model(
         self, state: AgentState[Any], runtime: Runtime[Context]
     ) -> dict[str, Any] | None:
-        """Inject message to force final output when approaching recursion limit."""
-        steps_remaining = RECURSION_LIMIT - self.step_count
+        """Inject warning or raise exception based on tool call count."""
+        tool_count = sum(1 for m in state["messages"] if isinstance(m, ToolMessage))
 
-        if steps_remaining <= STEPS_BUFFER:
-            print("⚠️  Approaching recursion limit - forcing final output")
+        # Already warned and model made more tool calls → hard stop
+        if self.warned_at_count is not None and tool_count > self.warned_at_count:
+            raise ToolCallLimitExceeded(
+                f"Agent exceeded tool call limit ({TOOL_CALL_LIMIT}). "
+                f"Made {tool_count} tool calls after being warned."
+            )
 
+        # Reached limit → inject warning, remember count
+        if tool_count >= TOOL_CALL_LIMIT and self.warned_at_count is None:
+            print("⚠️  Approaching tool call limit - forcing final output")
+            self.warned_at_count = tool_count
             return {
                 "messages": [
                     HumanMessage(content=get_prompt("last_step")),

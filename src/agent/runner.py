@@ -3,13 +3,11 @@ from typing import Any
 
 from langchain_core.callbacks import BaseCallbackHandler
 
-from ..config import RECURSION_LIMIT
 from .agent import create_review_agent
 from .formatting import build_review_context
 from .git_utils import FileChange
 from .progress_callback_handler import ProgressCallbackHandler
 from .prompts import build_review_system_prompt
-from .recursion_guard import RecursionGuard
 from .schema import Context, PrimaryReviewOutput
 from .token_usage import TokenUsage
 from .tools import FileContext
@@ -56,18 +54,13 @@ def run_review(
     # Build system prompt
     system_prompt = build_review_system_prompt(additional_instructions)
 
-    # Create recursion guard - used as both middleware and callback
-    recursion_guard = RecursionGuard()
-
-    # Create agent with recursion guard in middleware
+    # Create agent
     agent, file_context = create_review_agent(
         repo_path=repo_path,
-        recursion_guard=recursion_guard,
         additional_instructions=additional_instructions,
     )
 
-    # Add recursion guard to callbacks so it can track steps
-    callbacks: list[BaseCallbackHandler] = [recursion_guard]
+    callbacks: list[BaseCallbackHandler] = []
     if show_progress:
         callbacks.append(ProgressCallbackHandler())
 
@@ -76,7 +69,6 @@ def run_review(
             "thread_id": "1",
         },
         "callbacks": callbacks,
-        "recursion_limit": RECURSION_LIMIT,
     }
 
     response = agent.invoke(

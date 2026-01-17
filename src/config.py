@@ -36,7 +36,7 @@ MODEL_NAME = os.getenv(
     ),
 )
 MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "10000"))
-RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "200"))
+TOOL_CALL_LIMIT = int(os.getenv("TOOL_CALL_LIMIT", "100"))
 
 # Verification model (optional, defaults to MODEL_NAME)
 VERIFY_MODEL_NAME = os.getenv("VERIFY_MODEL_NAME", MODEL_NAME)

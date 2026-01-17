@@ -248,7 +248,7 @@ docker run --rm -it -v $(pwd):/repo \
 
 ```bash
 MAX_OUTPUT_TOKENS=10000     # Maximum tokens in response
-RECURSION_LIMIT=200         # Agent recursion limit
+TOOL_CALL_LIMIT=100         # Maximum tool calls before forcing output
 VERIFY_MODEL_NAME=...       # Model for verification (defaults to MODEL_NAME)
 ```
 
