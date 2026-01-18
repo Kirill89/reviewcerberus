@@ -10,9 +10,9 @@ from langchain_core.messages import (
 from langchain_core.messages.utils import count_tokens_approximately
 from langgraph.runtime import Runtime
 
-from ..config import CONTEXT_COMPACT_THRESHOLD
-from .prompts import get_prompt
-from .schema import Context
+from ...config import CONTEXT_COMPACT_THRESHOLD
+from ..prompts import get_prompt
+from ..schema import Context
 
 
 class SummarizingMiddleware(AgentMiddleware[AgentState[Any], Context]):

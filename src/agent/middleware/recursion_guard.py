@@ -5,9 +5,9 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import HumanMessage, ToolMessage
 from langgraph.runtime import Runtime
 
-from ..config import TOOL_CALL_LIMIT
-from .prompts import get_prompt
-from .schema import Context
+from ...config import TOOL_CALL_LIMIT
+from ..prompts import get_prompt
+from ..schema import Context
 
 
 class ToolCallLimitExceeded(Exception):

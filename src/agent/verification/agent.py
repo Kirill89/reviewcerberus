@@ -16,10 +16,10 @@ from ..formatting.format_verification import (
     format_issues_with_ids,
     format_questions_with_ids,
 )
+from ..middleware import init_agent_middleware
 from ..progress_callback_handler import ProgressCallbackHandler
 from ..prompts import get_prompt
 from ..providers import PROVIDER_REGISTRY
-from ..recursion_guard import RecursionGuard
 from ..schema import ReviewIssue
 from ..token_usage import TokenUsage
 from ..tools import (
@@ -80,6 +80,7 @@ def _invoke_agent(
         model=model,
         system_prompt=system_prompt,
         tools=[],
+        middleware=init_agent_middleware(),
         response_format=response_format,
     )
 
@@ -179,9 +180,7 @@ def answer_questions(
         model=model,
         system_prompt=prompt,
         tools=tools,
-        middleware=[
-            RecursionGuard(),
-        ],
+        middleware=init_agent_middleware(),
         response_format=AnswersOutput,
     )
 
