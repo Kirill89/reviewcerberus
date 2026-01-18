@@ -3,11 +3,10 @@ from typing import Any
 from langchain.agents import create_agent
 
 from .checkpointer import checkpointer
+from .middleware import init_agent_middleware
 from .model import model
 from .prompts import build_review_system_prompt
-from .recursion_guard import RecursionGuard
 from .schema import Context, PrimaryReviewOutput
-from .summarizing_middleware import SummarizingMiddleware
 from .tools import (
     FileContext,
     ListFilesTool,
@@ -48,10 +47,7 @@ def create_review_agent(
         tools=tools,
         context_schema=Context,
         checkpointer=checkpointer,
-        middleware=[
-            SummarizingMiddleware(),
-            RecursionGuard(),
-        ],
+        middleware=init_agent_middleware(include_summarizing=True),
         response_format=PrimaryReviewOutput,
     )
 
