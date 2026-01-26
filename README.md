@@ -30,7 +30,7 @@ Run with Docker (recommended):
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
   -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
-  kirill89/reviewcerberus-cli:latest \
+  kirill89/reviewcerberus:latest \
   --repo-path /repo --output /repo/review.md
 ```
 
@@ -214,7 +214,7 @@ docker run --rm -it -v $(pwd):/repo \
   -e AWS_ACCESS_KEY_ID=your_key \
   -e AWS_SECRET_ACCESS_KEY=your_secret \
   -e AWS_REGION_NAME=us-east-1 \
-  kirill89/reviewcerberus-cli:latest \
+  kirill89/reviewcerberus:latest \
   --repo-path /repo --output /repo/review.md
 ```
 
@@ -240,7 +240,7 @@ MODEL_NAME=deepseek-v3.1:671b-cloud     # optional
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=ollama \
   -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
-  kirill89/reviewcerberus-cli:latest \
+  kirill89/reviewcerberus:latest \
   --repo-path /repo --output /repo/review.md
 ```
 

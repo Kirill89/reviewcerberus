@@ -43,12 +43,22 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
+            kirill89/reviewcerberus:latest
+            kirill89/reviewcerberus:${{ steps.version.outputs.VERSION }}
             kirill89/reviewcerberus-cli:latest
             kirill89/reviewcerberus-cli:${{ steps.version.outputs.VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Update Docker Hub description
+      - name: Update Docker Hub description (reviewcerberus)
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: kirill89/reviewcerberus
+          readme-filepath: ./DOCKERHUB.md
+
+      - name: Update Docker Hub description (reviewcerberus-cli)
         uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}

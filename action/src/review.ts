@@ -59,7 +59,7 @@ export async function runReview(config: ReviewConfig): Promise<ReviewOutput> {
   }
 
   // Add image
-  dockerArgs.push(`kirill89/reviewcerberus-cli:${version}`);
+  dockerArgs.push(`kirill89/reviewcerberus:${version}`);
 
   // Add CLI arguments
   dockerArgs.push("--json");

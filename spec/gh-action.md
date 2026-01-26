@@ -42,9 +42,9 @@ CLI.** No changes to Python code. The action:
                                       │
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Docker Image (kirill89/reviewcerberus-cli)                                  │
+│ Docker Image (kirill89/reviewcerberus)                                  │
 │                                                                             │
-│  docker run kirill89/reviewcerberus-cli --json --target-branch main         │
+│  docker run kirill89/reviewcerberus --json --target-branch main         │
 │  → outputs JSON to stdout                                                   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -84,7 +84,7 @@ action/
 │ 1. Run Docker image via @actions/exec                                       │
 │    docker run -v $GITHUB_WORKSPACE:/repo \                                  │
 │      -e MODEL_PROVIDER -e ANTHROPIC_API_KEY ... \                           │
-│      kirill89/reviewcerberus-cli --json --target-branch $BASE_REF           │
+│      kirill89/reviewcerberus --json --target-branch $BASE_REF           │
 │    + optional: --verify, --instructions                                     │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
@@ -231,7 +231,7 @@ await exec.exec("docker", [
   "-e", `MODEL_PROVIDER=${modelProvider}`,
   "-e", `ANTHROPIC_API_KEY=${anthropicApiKey}`,
   // ... other env vars
-  `kirill89/reviewcerberus-cli:${version}`,
+  `kirill89/reviewcerberus:${version}`,
   "--json",
   "--output", `/repo/${outputFile}`,
   "--target-branch", baseBranch,
@@ -272,8 +272,8 @@ Add a step to `docker-publish.yml` to create a git tag after Docker publish:
 
 This ensures:
 
-- Docker image `kirill89/reviewcerberus-cli:1.2.0` and git tag `v1.2.0` are
-  created together
+- Docker image `kirill89/reviewcerberus:1.2.0` and git tag `v1.2.0` are created
+  together
 - Users can reference the action as `@v1.2.0`
 - Action reads version from `pyproject.toml` and pulls matching Docker image
 
