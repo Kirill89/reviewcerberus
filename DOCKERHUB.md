@@ -9,7 +9,7 @@ comprehensive review reports with structured output.
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
   -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
-  kirill89/reviewcerberus-cli:latest \
+  kirill89/reviewcerberus:latest \
   --repo-path /repo --output /repo/review.md
 ```
 
@@ -36,7 +36,7 @@ Custom target branch:
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
   -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
-  kirill89/reviewcerberus-cli:latest \
+  kirill89/reviewcerberus:latest \
   --repo-path /repo --target-branch develop --output /repo/review.md
 ```
 
@@ -46,7 +46,7 @@ With custom review guidelines:
 docker run --rm -it -v $(pwd):/repo \
   -e MODEL_PROVIDER=anthropic \
   -e ANTHROPIC_API_KEY=sk-ant-your-api-key \
-  kirill89/reviewcerberus-cli:latest \
+  kirill89/reviewcerberus:latest \
   --repo-path /repo --instructions /repo/guidelines.md --output /repo/review.md
 ```
 

@@ -30594,7 +30594,7 @@ async function runReview(config) {
         dockerArgs.push("-e", `${key}=${value}`);
     }
     // Add image
-    dockerArgs.push(`kirill89/reviewcerberus-cli:${version}`);
+    dockerArgs.push(`kirill89/reviewcerberus:${version}`);
     // Add CLI arguments
     dockerArgs.push("--json");
     dockerArgs.push("--output", `/repo/${OUTPUT_FILE}`);
