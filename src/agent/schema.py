@@ -62,7 +62,7 @@ class PrimaryReviewOutput(BaseModel):
     """Structured output from the primary review agent."""
 
     description: str = Field(
-        description="High-level summary of changes in markdown format, including overview, key changes, and potentially risky areas"
+        description="High-level summary of changes in markdown format, including overview and key changes"
     )
     issues: list[ReviewIssue] = Field(
         default_factory=list,

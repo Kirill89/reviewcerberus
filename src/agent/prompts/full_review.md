@@ -17,8 +17,6 @@ field:
 1. **Overview**: What is the main purpose of these changes?
 2. **Key changes**: List the main features or behaviors added, modified, or
    removed, including any architectural or design changes.
-3. **Potentially risky areas**: Highlight changes that are risky or far-reaching
-   in impact.
 
 Format this as markdown content.
 
@@ -116,7 +114,6 @@ Your response MUST be a structured output with:
 
    - Overview of the changes
    - Key changes made
-   - Potentially risky areas
 
 2. **issues**: An array of issue objects. Each issue must have all required
    fields.
