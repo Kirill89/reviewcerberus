@@ -21,7 +21,7 @@ directory.
 - **Comprehensive Reviews**: Detailed analysis of logic, security, performance,
   and code quality
 - **Structured Output**: Issues organized by severity with summary table
-- **Multi-Provider**: AWS Bedrock, Anthropic API, or Ollama
+- **Multi-Provider**: AWS Bedrock, Anthropic API, Ollama, or Moonshot
 - **Smart Analysis**: Context provided upfront with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
 - **Verification Mode**: Experimental
@@ -98,6 +98,15 @@ Every review includes:
 -e MODEL_PROVIDER=ollama
 -e OLLAMA_BASE_URL=http://host.docker.internal:11434
 -e MODEL_NAME=deepseek-v3.1:671b-cloud  # optional
+```
+
+### Moonshot
+
+```bash
+-e MODEL_PROVIDER=moonshot
+-e MOONSHOT_API_KEY=sk-your-api-key
+-e MOONSHOT_API_BASE=https://api.moonshot.ai/v1  # optional
+-e MODEL_NAME=kimi-k2.5  # optional
 ```
 
 ## Command-Line Options

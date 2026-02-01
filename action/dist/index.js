@@ -30010,6 +30010,9 @@ const INPUT_TO_ENV = {
     anthropic_api_key: "ANTHROPIC_API_KEY",
     // Ollama
     ollama_base_url: "OLLAMA_BASE_URL",
+    // Moonshot
+    moonshot_api_key: "MOONSHOT_API_KEY",
+    moonshot_api_base: "MOONSHOT_API_BASE",
 };
 /**
  * Default values for inputs (must match action.yml)
@@ -30018,6 +30021,7 @@ const INPUT_DEFAULTS = {
     model_provider: "bedrock",
     aws_region_name: "us-east-1",
     ollama_base_url: "http://localhost:11434",
+    moonshot_api_base: "https://api.moonshot.ai/v1",
 };
 /**
  * Reads action inputs and returns them as Docker environment variables.

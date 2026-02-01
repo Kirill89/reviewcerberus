@@ -51,6 +51,7 @@ The action wraps the CLI and provides:
   - AWS Bedrock (default)
   - Anthropic API
   - Ollama (local models)
+  - Moonshot
 - Factory pattern architecture: Each provider in separate file, easy to extend
 - Framework: LangChain for AI orchestration
 
@@ -98,7 +99,7 @@ The agent also has access to these tools for additional analysis:
 1. **CLI Parser**: Handle command-line arguments and defaults
 2. **Git Interface**: Interact with Git to get diffs, file lists, and content
 3. **AI Provider Layer**: Factory pattern with support for Bedrock, Anthropic,
-   and Ollama
+   Ollama, and Moonshot
 4. **LangChain Agent**: Orchestrate tools and AI to perform reviews
 5. **Report Generator**: Format and write Markdown review reports
 
@@ -156,6 +157,7 @@ Each issue includes:
   - AWS Bedrock (langchain-aws 1.1.0, boto3 1.42.15)
   - Anthropic API (langchain-anthropic 1.3.0)
   - Ollama (langchain-ollama 1.0.1)
+  - Moonshot (langchain-openai - OpenAI-compatible API)
 - **VCS**: Git (via subprocess)
 - **CLI**: argparse
 - **Output**: Markdown (with mdformat for consistent formatting)

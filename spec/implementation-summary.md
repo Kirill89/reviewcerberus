@@ -10,7 +10,7 @@ principles. Available as CLI/Docker or GitHub Action.
 
 - Comprehensive code reviews with detailed analysis
 - Structured output with issues organized by severity
-- Multi-provider support (AWS Bedrock, Anthropic API, and Ollama)
+- Multi-provider support (AWS Bedrock, Anthropic API, Ollama, and Moonshot)
 - Automatic context management for large PRs
 - Verification mode using
   [Chain-of-Verification](https://arxiv.org/abs/2309.11495) to reduce false
@@ -25,6 +25,7 @@ principles. Available as CLI/Docker or GitHub Action.
   - AWS Bedrock Claude (boto3 1.42.15, langchain-aws 1.1.0)
   - Anthropic API (langchain-anthropic 1.3.0)
   - Ollama (langchain-ollama 1.0.1)
+  - Moonshot (langchain-openai - OpenAI-compatible API)
 - Git (subprocess)
 - pytest
 
@@ -41,8 +42,8 @@ ______________________________________________________________________
 
 ### 1. Multi-Provider Architecture
 
-Support for AWS Bedrock, Anthropic API, and Ollama as alternative providers (not
-simultaneous). User selects via `MODEL_PROVIDER` env variable.
+Support for AWS Bedrock, Anthropic API, Ollama, and Moonshot as alternative
+providers (not simultaneous). User selects via `MODEL_PROVIDER` env variable.
 
 **Factory Pattern Implementation:**
 
@@ -58,6 +59,7 @@ simultaneous). User selects via `MODEL_PROVIDER` env variable.
   - Bedrock: explicit cache points via `CachingBedrockClient`
   - Anthropic: automatic caching via SDK
   - Ollama: no caching (local inference)
+  - Moonshot: no caching
 - Clear error messages for missing credentials based on selected provider
 - Easy to extend with new providers (add file + registry entry)
 
@@ -253,7 +255,8 @@ reviewcerberus/
 │       │   ├── bedrock.py               # Bedrock provider
 │       │   ├── bedrock_caching.py       # Bedrock caching wrapper
 │       │   ├── anthropic.py             # Anthropic provider
-│       │   └── ollama.py                # Ollama provider
+│       │   ├── ollama.py                # Ollama provider
+│       │   └── moonshot.py              # Moonshot provider
 │       ├── prompts/                     # Review prompts
 │       │   ├── __init__.py              # Prompt loader
 │       │   ├── full_review.md           # Main review prompt
@@ -468,12 +471,21 @@ OLLAMA_BASE_URL=http://localhost:11434      # optional, default
 MODEL_NAME=devstral-2:123b-cloud            # optional, default
 ```
 
+**.env (Moonshot):**
+
+```bash
+MODEL_PROVIDER=moonshot
+MOONSHOT_API_KEY=sk-...
+MOONSHOT_API_BASE=https://api.moonshot.ai/v1  # optional, default
+MODEL_NAME=kimi-k2.5                          # optional, default
+```
+
 **Model Initialization:**
 
 - Factory pattern: `src/agent/model.py` uses `create_model()` from providers
 - Registry-based: Each provider registered in `PROVIDER_REGISTRY` dict
 - Provider files: `providers/bedrock.py`, `providers/anthropic.py`,
-  `providers/ollama.py`
+  `providers/ollama.py`, `providers/moonshot.py`
 - Each provider exports `create_<provider>_model(model_name, max_tokens)`
   function
 
