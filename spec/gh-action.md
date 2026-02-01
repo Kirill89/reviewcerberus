@@ -134,7 +134,7 @@ branding:
 inputs:
   # Provider selection
   model_provider:
-    description: "Model provider: bedrock, anthropic, or ollama"
+    description: "Model provider: bedrock, anthropic, ollama, or moonshot"
     required: false
     default: "bedrock"
 
@@ -160,6 +160,15 @@ inputs:
     description: "Ollama base URL"
     required: false
     default: "http://localhost:11434"
+
+  # Moonshot
+  moonshot_api_key:
+    description: "Moonshot API key"
+    required: false
+  moonshot_api_base:
+    description: "Moonshot API base URL"
+    required: false
+    default: "https://api.moonshot.ai/v1"
 
   # Model settings
   model_name:

@@ -7,6 +7,7 @@ from ...config import (
 )
 from .anthropic import create_anthropic_model
 from .bedrock import create_bedrock_model
+from .moonshot import create_moonshot_model
 from .ollama import create_ollama_model
 
 # Registry mapping provider names to factory functions
@@ -14,6 +15,7 @@ PROVIDER_REGISTRY = {
     "bedrock": create_bedrock_model,
     "anthropic": create_anthropic_model,
     "ollama": create_ollama_model,
+    "moonshot": create_moonshot_model,
 }
 
 

@@ -13,7 +13,7 @@ comprehensive review reports with structured output.
 - **Comprehensive Reviews**: Detailed analysis of logic, security, performance,
   and code quality
 - **Structured Output**: Issues organized by severity with summary table
-- **Multi-Provider**: AWS Bedrock, Anthropic API, or Ollama
+- **Multi-Provider**: AWS Bedrock, Anthropic API, Ollama, or Moonshot
 - **Smart Analysis**: Context provided upfront with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
 - **Verification Mode**: Experimental
@@ -195,7 +195,7 @@ All configuration via environment variables (`.env` file):
 ### Provider Selection
 
 ```bash
-MODEL_PROVIDER=bedrock  # or "anthropic" or "ollama" (default: bedrock)
+MODEL_PROVIDER=bedrock  # or "anthropic", "ollama", "moonshot" (default: bedrock)
 ```
 
 ### AWS Bedrock (if MODEL_PROVIDER=bedrock)
@@ -244,6 +244,15 @@ docker run --rm -it -v $(pwd):/repo \
   --repo-path /repo --output /repo/review.md
 ```
 
+### Moonshot (if MODEL_PROVIDER=moonshot)
+
+```bash
+MODEL_PROVIDER=moonshot
+MOONSHOT_API_KEY=sk-your-api-key-here
+MOONSHOT_API_BASE=https://api.moonshot.ai/v1  # optional, default
+MODEL_NAME=kimi-k2.5                          # optional
+```
+
 ### Optional Settings
 
 ```bash
@@ -269,7 +278,7 @@ Use ReviewCerberus as a GitHub Action for automated PR reviews.
 
 | Input | Description | Default |
 | -- | -- | -- |
-| `model_provider` | Provider: `bedrock`, `anthropic`, or `ollama` | `bedrock` |
+| `model_provider` | Provider: `bedrock`, `anthropic`, `ollama`, or `moonshot` | `bedrock` |
 | `anthropic_api_key` | Anthropic API key | - |
 | `aws_access_key_id` | AWS Access Key ID (Bedrock) | - |
 | `aws_secret_access_key` | AWS Secret Access Key (Bedrock) | - |
