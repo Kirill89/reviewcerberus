@@ -19,8 +19,7 @@ jobs:
 
       - uses: Kirill89/reviewcerberus/action@main
         with:
-          model_provider: "anthropic"
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model_name: "claude-haiku-4-5"
+          model_provider: "moonshot"
+          moonshot_api_key: ${{ secrets.MOONSHOT_API_KEY }}
           verify: "true"
           min_confidence: "6"
