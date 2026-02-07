@@ -37,9 +37,13 @@ ENV PYTHONPATH="/app"
 # user runs the container (GitHub Action overrides USER with --user flag)
 RUN python -m src.agent.sast.installer && \
     mv "$(python -c 'from src.agent.sast.installer import _get_cache_path; print(_get_cache_path())')" /usr/local/bin/opengrep && \
-    chmod +x /usr/local/bin/opengrep && \
-    mkdir -p /.cache && chmod 777 /.cache
+    chmod +x /usr/local/bin/opengrep
 ENV OPENGREP_BINARY_PATH="/usr/local/bin/opengrep"
+
+# Set HOME to a writable directory so opengrep (and other tools) can create
+# cache dirs even when GitHub Action overrides USER with --user flag
+RUN mkdir -p /home/app && chmod 777 /home/app
+ENV HOME="/home/app"
 
 # Create non-root user and set up permissions
 RUN useradd -m -u 1000 -s /bin/bash reviewcerberus && \
