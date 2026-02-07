@@ -99,6 +99,9 @@ poetry run reviewcerberus --instructions guidelines.md
 
 # Enable verification mode (experimental)
 poetry run reviewcerberus --verify
+
+# Enable SAST pre-scan (experimental)
+poetry run reviewcerberus --sast
 ```
 
 ### Example Commands
@@ -147,6 +150,17 @@ Enable with `--verify` flag to reduce false positives using
 3. **Score Confidence**: Assigns 1-10 confidence score based on evidence
 
 Each issue in the output includes a confidence score and rationale.
+
+### SAST Integration (Experimental)
+
+Enable with `--sast` flag to run an
+[OpenGrep](https://github.com/opengrep/opengrep) (Semgrep fork) pre-scan before
+the AI review:
+
+- Scans only new findings introduced by the current branch
+- Findings are provided to the AI agent as supplementary context
+- The agent independently verifies each finding and dismisses false positives
+- Combines static analysis precision with AI contextual understanding
 
 ______________________________________________________________________
 
@@ -285,6 +299,7 @@ Use ReviewCerberus as a GitHub Action for automated PR reviews.
 | `aws_region_name` | AWS Region (Bedrock) | `us-east-1` |
 | `model_name` | Model name (provider-specific) | - |
 | `verify` | Enable Chain-of-Verification | `false` |
+| `sast` | Enable OpenGrep SAST pre-scan | `false` |
 | `min_confidence` | Min confidence score 1-10 (requires verify) | - |
 | `instructions` | Path to custom review guidelines | - |
 
@@ -297,6 +312,16 @@ Use ReviewCerberus as a GitHub Action for automated PR reviews.
     anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
     verify: "true"
     min_confidence: "7"
+```
+
+### Example with SAST
+
+```yaml
+- uses: Kirill89/reviewcerberus/action@v1
+  with:
+    model_provider: anthropic
+    anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+    sast: "true"
 ```
 
 ### Example with AWS Bedrock

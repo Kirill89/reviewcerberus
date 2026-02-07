@@ -29,18 +29,21 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy application code
 COPY src ./src
 
+# Add virtualenv to PATH and app to PYTHONPATH
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app"
+
 # Create non-root user and set up permissions
 RUN useradd -m -u 1000 -s /bin/bash reviewcerberus && \
     chown -R reviewcerberus:reviewcerberus /app && \
     mkdir -p /repo && \
     chown reviewcerberus:reviewcerberus /repo
 
-# Add virtualenv to PATH and app to PYTHONPATH
-ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONPATH="/app"
-
 # Switch to non-root user
 USER reviewcerberus
+
+# Pre-install opengrep binary (runs as reviewcerberus so cache path matches runtime)
+RUN python -m src.agent.sast.installer
 
 # Set working directory for mounted repositories
 WORKDIR /repo
