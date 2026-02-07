@@ -4,7 +4,10 @@ from ..git_utils import FileChange, get_commit_messages, get_file_diff
 
 
 def build_review_context(
-    repo_path: str, target_branch: str, changed_files: list[FileChange]
+    repo_path: str,
+    target_branch: str,
+    changed_files: list[FileChange],
+    sast_findings: str | None = None,
 ) -> str:
     """Build the full review context message with commits, files, and diffs.
 
@@ -12,6 +15,7 @@ def build_review_context(
         repo_path: Absolute path to the git repository
         target_branch: Branch to compare against
         changed_files: List of changed files
+        sast_findings: Optional trimmed SAST findings JSON to append
 
     Returns:
         Formatted context string for the review
@@ -51,5 +55,8 @@ def build_review_context(
             diff_parts.append(f"### {f.path}\n```diff\n{diff}\n```")
 
     sections.append("## Diffs\n" + "\n\n".join(diff_parts))
+
+    if sast_findings:
+        sections.append("## SAST Findings\n" + sast_findings)
 
     return "\n\n".join(sections)

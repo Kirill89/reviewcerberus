@@ -30,16 +30,24 @@ def get_prompt(name: str) -> str:
         return f.read()
 
 
-def build_review_system_prompt(additional_instructions: str | None = None) -> str:
+def build_review_system_prompt(
+    additional_instructions: str | None = None,
+    include_sast_guidance: bool = False,
+) -> str:
     """Build the system prompt for code review.
 
     Args:
         additional_instructions: Optional additional review guidelines to append
+        include_sast_guidance: Whether to include SAST skepticism guidance
 
     Returns:
         Complete system prompt string
     """
     system_prompt = get_prompt("full_review")
+
+    if include_sast_guidance:
+        sast_guidance = get_prompt("sast_guidance")
+        system_prompt = f"{system_prompt}\n\n{sast_guidance}"
 
     if additional_instructions:
         system_prompt = (

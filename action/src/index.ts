@@ -48,6 +48,7 @@ async function run(): Promise<void> {
       workspace,
       targetBranch,
       verify: inputs.verify,
+      sast: inputs.sast,
       instructions: inputs.instructions,
       env: dockerEnv,
     };

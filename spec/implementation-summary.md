@@ -211,7 +211,43 @@ positives.
 
 See `spec/verification.md` for full details.
 
-### 13. GitHub Action
+### 13. SAST Integration (Experimental)
+
+Optional `--sast` flag runs an [OpenGrep](https://github.com/opengrep/opengrep)
+(Semgrep fork) SAST pre-scan before the AI review.
+
+**Design:**
+
+- SAST runs before the agent as a pre-processing step
+- Findings go into the user message (alongside diffs/commits)
+- SAST skepticism guidance appended to system prompt (original `full_review.md`
+  stays untouched)
+- SAST errors are fatal (user explicitly opted in)
+
+**Architecture:**
+
+- `sast/installer.py` — binary download, caching, platform detection
+- `sast/scanner.py` — run opengrep, trim JSON output for LLM
+- `prompts/sast_guidance.md` — skepticism + go-beyond-SAST guidance
+
+**Binary Management:**
+
+- Pinned version (v1.16.0) downloaded from GitHub releases
+- Cached at `~/.cache/reviewcerberus/opengrep-v{VERSION}/opengrep`
+- Pre-installed in Docker image at `/usr/local/bin/opengrep`
+- Lookup order: env var → cache → download (no system lookup to avoid version
+  mismatch)
+
+**Prompt Approach:**
+
+- Findings trimmed to essential fields (check_id, path, lines, message,
+  severity)
+- Agent instructed to be skeptical: verify independently, dismiss false
+  positives silently
+- Agent instructed to go beyond SAST: focus on logic errors, race conditions,
+  design problems
+
+### 14. GitHub Action
 
 Isolated TypeScript wrapper that calls the CLI and posts results to GitHub.
 
@@ -260,6 +296,7 @@ reviewcerberus/
 │       ├── prompts/                     # Review prompts
 │       │   ├── __init__.py              # Prompt loader
 │       │   ├── full_review.md           # Main review prompt
+│       │   ├── sast_guidance.md         # SAST skepticism guidance
 │       │   └── context_summary.md       # Context compaction prompt
 │       ├── git_utils/                   # Git operations
 │       │   ├── get_changed_files.py     # List changed files
@@ -273,6 +310,10 @@ reviewcerberus/
 │       │   ├── format_review_content.py # Format markdown output
 │       │   ├── format_verification.py   # Verification formatting helpers
 │       │   └── render_structured_output.py  # Render schema to markdown
+│       ├── sast/                        # SAST integration (OpenGrep)
+│       │   ├── __init__.py              # Module exports
+│       │   ├── installer.py             # Binary download & caching
+│       │   └── scanner.py               # Run opengrep, trim output
 │       ├── verification/                # Chain-of-Verification pipeline
 │       │   ├── schema.py                # Verification Pydantic models
 │       │   ├── agent.py                 # 3 verification LLM calls

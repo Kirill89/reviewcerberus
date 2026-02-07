@@ -30,6 +30,7 @@ def run_review(
     changed_files: list[FileChange],
     show_progress: bool = True,
     additional_instructions: str | None = None,
+    sast_findings: str | None = None,
 ) -> ReviewResult:
     """Run the code review agent and return structured output.
 
@@ -39,6 +40,7 @@ def run_review(
         changed_files: List of changed files to review
         show_progress: Whether to show progress messages
         additional_instructions: Optional additional review guidelines
+        sast_findings: Optional trimmed SAST findings JSON to include in context
 
     Returns:
         ReviewResult containing output, token usage, and context for verification
@@ -49,15 +51,21 @@ def run_review(
     )
 
     # Build the review context with all diffs and commit messages
-    user_message = build_review_context(repo_path, target_branch, changed_files)
+    user_message = build_review_context(
+        repo_path, target_branch, changed_files, sast_findings
+    )
 
     # Build system prompt
-    system_prompt = build_review_system_prompt(additional_instructions)
+    include_sast = sast_findings is not None
+    system_prompt = build_review_system_prompt(
+        additional_instructions, include_sast_guidance=include_sast
+    )
 
     # Create agent
     agent, file_context = create_review_agent(
         repo_path=repo_path,
         additional_instructions=additional_instructions,
+        include_sast_guidance=include_sast,
     )
 
     callbacks: list[BaseCallbackHandler] = []
