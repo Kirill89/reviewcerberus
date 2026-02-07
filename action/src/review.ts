@@ -10,6 +10,7 @@ export interface ReviewConfig {
   workspace: string;
   targetBranch: string;
   verify: boolean;
+  sast: boolean;
   instructions?: string;
   env: Record<string, string>;
 }
@@ -68,6 +69,10 @@ export async function runReview(config: ReviewConfig): Promise<ReviewOutput> {
 
   if (config.verify) {
     dockerArgs.push("--verify");
+  }
+
+  if (config.sast) {
+    dockerArgs.push("--sast");
   }
 
   if (config.instructions) {

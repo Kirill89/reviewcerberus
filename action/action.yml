@@ -57,6 +57,10 @@ inputs:
     description: "Enable Chain-of-Verification"
     required: false
     default: "false"
+  sast:
+    description: "Enable OpenGrep SAST pre-scan (experimental)"
+    required: false
+    default: "false"
   verify_model_name:
     description: "Model for verification (defaults to model_name)"
     required: false
