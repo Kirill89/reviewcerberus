@@ -33,6 +33,12 @@ COPY src ./src
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"
 
+# Pre-install opengrep binary to a fixed path so it works regardless of which
+# user runs the container (GitHub Action overrides USER with --user flag)
+RUN python -m src.agent.sast.installer && \
+    cp "$(python -c 'from src.agent.sast.installer import _get_cache_path; print(_get_cache_path())')" /usr/local/bin/opengrep
+ENV OPENGREP_BINARY_PATH="/usr/local/bin/opengrep"
+
 # Create non-root user and set up permissions
 RUN useradd -m -u 1000 -s /bin/bash reviewcerberus && \
     chown -R reviewcerberus:reviewcerberus /app && \
@@ -41,9 +47,6 @@ RUN useradd -m -u 1000 -s /bin/bash reviewcerberus && \
 
 # Switch to non-root user
 USER reviewcerberus
-
-# Pre-install opengrep binary (runs as reviewcerberus so cache path matches runtime)
-RUN python -m src.agent.sast.installer
 
 # Set working directory for mounted repositories
 WORKDIR /repo
