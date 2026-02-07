@@ -116,6 +116,7 @@ Every review includes:
 - `--repo-path`: Path to git repository - default: `/repo`
 - `--instructions`: Path to markdown file with custom review guidelines
 - `--verify`: Enable verification mode to reduce false positives (experimental)
+- `--sast`: Enable OpenGrep SAST pre-scan (experimental)
 - `--json`: Output review as JSON instead of markdown
 
 ## Requirements

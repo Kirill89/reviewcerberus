@@ -18,6 +18,7 @@ from .tools import (
 def create_review_agent(
     repo_path: str,
     additional_instructions: str | None = None,
+    include_sast_guidance: bool = False,
 ) -> tuple[Any, FileContext]:
     """Create a review agent with optional additional instructions.
 
@@ -25,11 +26,14 @@ def create_review_agent(
         repo_path: Path to the git repository
         additional_instructions: Optional additional review guidelines to append
                                 to the system prompt
+        include_sast_guidance: Whether to include SAST skepticism guidance
 
     Returns:
         Tuple of (configured agent instance, FileContext used by the agent)
     """
-    system_prompt = build_review_system_prompt(additional_instructions)
+    system_prompt = build_review_system_prompt(
+        additional_instructions, include_sast_guidance
+    )
 
     # Create FileContext for tracking file content
     file_context = FileContext()

@@ -13,6 +13,7 @@ from .agent.git_utils import (
     get_repo_root,
 )
 from .agent.runner import run_review
+from .agent.sast import run_sast_scan
 from .agent.schema import PrimaryReviewOutput
 from .agent.verification import VerifiedReviewOutput, run_verification
 from .config import MODEL_NAME, MODEL_PROVIDER
@@ -47,6 +48,11 @@ def parse_arguments() -> argparse.Namespace:
         "--json",
         action="store_true",
         help="Output review as JSON instead of markdown",
+    )
+    parser.add_argument(
+        "--sast",
+        action="store_true",
+        help="[Experimental] Run OpenGrep SAST pre-scan to augment the review",
     )
     return parser.parse_args()
 
@@ -145,11 +151,26 @@ def main() -> None:
         except Exception as e:
             print(f"Warning: Could not read instructions file: {e}", file=sys.stderr)
 
+    sast_findings_str = None
+    if args.sast:
+        print("Running SAST pre-scan (OpenGrep)...")
+        sast_result = run_sast_scan(repo_path, args.target_branch)
+        if sast_result:
+            sast_findings_str = sast_result.findings
+            print(
+                f"SAST: Found {sast_result.count} potential "
+                f"issue{'s' if sast_result.count != 1 else ''}"
+            )
+        else:
+            print("SAST: No findings")
+        print()
+
     review_result = run_review(
         repo_path=repo_path,
         target_branch=args.target_branch,
         changed_files=changed_files,
         additional_instructions=additional_instructions,
+        sast_findings=sast_findings_str,
     )
 
     # Optionally run verification

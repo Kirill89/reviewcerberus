@@ -90,6 +90,7 @@ export function getDockerEnv(): Record<string, string> {
 export interface ActionInputs {
   githubToken: string;
   verify: boolean;
+  sast: boolean;
   instructions?: string;
   minConfidence?: number;
 }
@@ -104,6 +105,7 @@ export function getActionInputs(): ActionInputs {
   }
 
   const verify = core.getInput("verify") === "true";
+  const sast = core.getInput("sast") === "true";
   const instructions = core.getInput("instructions") || undefined;
   const minConfidenceStr = core.getInput("min_confidence");
   const minConfidence = minConfidenceStr
@@ -119,6 +121,7 @@ export function getActionInputs(): ActionInputs {
   return {
     githubToken,
     verify,
+    sast,
     instructions,
     minConfidence: verify ? minConfidence : undefined,
   };

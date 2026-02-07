@@ -30046,6 +30046,7 @@ function getActionInputs() {
         throw new Error("github_token is required");
     }
     const verify = core.getInput("verify") === "true";
+    const sast = core.getInput("sast") === "true";
     const instructions = core.getInput("instructions") || undefined;
     const minConfidenceStr = core.getInput("min_confidence");
     const minConfidence = minConfidenceStr
@@ -30057,6 +30058,7 @@ function getActionInputs() {
     return {
         githubToken,
         verify,
+        sast,
         instructions,
         minConfidence: verify ? minConfidence : undefined,
     };
@@ -30356,6 +30358,7 @@ async function run() {
             workspace,
             targetBranch,
             verify: inputs.verify,
+            sast: inputs.sast,
             instructions: inputs.instructions,
             env: dockerEnv,
         };
@@ -30605,6 +30608,9 @@ async function runReview(config) {
     dockerArgs.push("--target-branch", config.targetBranch);
     if (config.verify) {
         dockerArgs.push("--verify");
+    }
+    if (config.sast) {
+        dockerArgs.push("--sast");
     }
     if (config.instructions) {
         dockerArgs.push("--instructions", config.instructions);
