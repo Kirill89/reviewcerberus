@@ -5,7 +5,7 @@
 </p>
 
 AI-powered code review tool that analyzes git branch differences and generates
-comprehensive review reports with structured output.
+comprehensive review reports with structured output. TEST TEST TEST
 
 ## Key Features
 
