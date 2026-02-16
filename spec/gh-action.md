@@ -195,6 +195,11 @@ inputs:
     description: "Minimum confidence score (1-10), issues with confidence >= this value are reported (requires verify)"
     required: false
 
+  # Quality gate
+  fail_on:
+    description: "Fail the action if issues at or above this severity are found (critical, high, medium, low)"
+    required: false
+
   # GitHub token (automatically provided)
   github_token:
     description: "GitHub token for API access"
@@ -605,6 +610,16 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           verify: "true"
           min_confidence: "7"
+```
+
+### Example as Quality Gate
+
+```yaml
+- uses: Kirill89/reviewcerberus/action@v1
+  with:
+    model_provider: anthropic
+    anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+    fail_on: "high"
 ```
 
 ______________________________________________________________________

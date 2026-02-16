@@ -264,6 +264,7 @@ Isolated TypeScript wrapper that calls the CLI and posts results to GitHub.
 - Uses `@actions/github` (Octokit) for GitHub API
 - Resolves previous review threads on re-runs
 - Supports confidence filtering (with `--verify`)
+- Quality gate via `fail_on` (fail CI on issues at or above a severity)
 
 **Components:**
 

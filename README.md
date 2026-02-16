@@ -301,6 +301,7 @@ Use ReviewCerberus as a GitHub Action for automated PR reviews.
 | `verify` | Enable Chain-of-Verification | `false` |
 | `sast` | Enable OpenGrep SAST pre-scan | `false` |
 | `min_confidence` | Min confidence score 1-10 (requires verify) | - |
+| `fail_on` | Fail if issues at or above this severity: `critical`, `high`, `medium`, `low` | - |
 | `instructions` | Path to custom review guidelines | - |
 
 ### Example with Verification
@@ -322,6 +323,16 @@ Use ReviewCerberus as a GitHub Action for automated PR reviews.
     model_provider: anthropic
     anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
     sast: "true"
+```
+
+### Example as Quality Gate
+
+```yaml
+- uses: Kirill89/reviewcerberus/action@v1
+  with:
+    model_provider: anthropic
+    anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+    fail_on: "high"
 ```
 
 ### Example with AWS Bedrock
