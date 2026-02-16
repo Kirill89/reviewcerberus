@@ -121,12 +121,12 @@ export function getActionInputs(): ActionInputs {
   }
 
   const failOnRaw = core.getInput("fail_on");
-  const failOnUpper = failOnRaw.toUpperCase() as Severity;
+  const failOnUpper = failOnRaw.toUpperCase();
   const validSeverities: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
   let failOn: Severity | undefined;
   if (failOnRaw) {
-    if (validSeverities.includes(failOnUpper)) {
-      failOn = failOnUpper;
+    if (validSeverities.includes(failOnUpper as Severity)) {
+      failOn = failOnUpper as Severity;
     } else {
       core.warning(
         `Invalid fail_on value "${failOnRaw}". Must be one of: critical, high, medium, low. Ignoring.`
