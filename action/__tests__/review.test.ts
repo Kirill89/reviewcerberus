@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { filterByConfidence, parseReviewOutput } from "../src/review";
-import { ReviewIssue } from "../src/types";
+import {
+  checkFailOn,
+  filterByConfidence,
+  parseReviewOutput,
+} from "../src/review";
+import { ReviewIssue, Severity } from "../src/types";
 
 describe("filterByConfidence", () => {
   const makeIssue = (
@@ -54,6 +58,63 @@ describe("filterByConfidence", () => {
   it("handles empty array", () => {
     const result = filterByConfidence([], 5);
     expect(result).toHaveLength(0);
+  });
+});
+
+describe("checkFailOn", () => {
+  const makeIssueWithSeverity = (severity: Severity): ReviewIssue => ({
+    title: `${severity} issue`,
+    severity,
+    category: "LOGIC",
+    location: [{ filename: "test.py" }],
+    explanation: "Test",
+    suggested_fix: "Fix",
+  });
+
+  it("returns undefined when failOn is undefined", () => {
+    const issues = [makeIssueWithSeverity("CRITICAL")];
+    expect(checkFailOn(issues, undefined)).toBeUndefined();
+  });
+
+  it("returns undefined with empty issues", () => {
+    expect(checkFailOn([], "HIGH")).toBeUndefined();
+  });
+
+  it("returns message when issue matches threshold exactly", () => {
+    const issues = [makeIssueWithSeverity("HIGH")];
+    expect(checkFailOn(issues, "HIGH")).toContain("HIGH");
+  });
+
+  it("returns message when issue is above threshold", () => {
+    const issues = [makeIssueWithSeverity("CRITICAL")];
+    expect(checkFailOn(issues, "HIGH")).toContain("HIGH");
+  });
+
+  it("returns undefined when all issues are below threshold", () => {
+    const issues = [
+      makeIssueWithSeverity("LOW"),
+      makeIssueWithSeverity("MEDIUM"),
+    ];
+    expect(checkFailOn(issues, "HIGH")).toBeUndefined();
+  });
+
+  it("triggers on any matching issue among many", () => {
+    const issues = [
+      makeIssueWithSeverity("LOW"),
+      makeIssueWithSeverity("HIGH"),
+      makeIssueWithSeverity("LOW"),
+    ];
+    expect(checkFailOn(issues, "HIGH")).toBeDefined();
+  });
+
+  it("works with LOW threshold (matches everything)", () => {
+    const issues = [makeIssueWithSeverity("LOW")];
+    expect(checkFailOn(issues, "LOW")).toBeDefined();
+  });
+
+  it("works with CRITICAL threshold (only matches CRITICAL)", () => {
+    const issues = [makeIssueWithSeverity("HIGH")];
+    expect(checkFailOn(issues, "CRITICAL")).toBeUndefined();
   });
 });
 

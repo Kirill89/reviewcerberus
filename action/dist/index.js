@@ -30055,12 +30055,25 @@ function getActionInputs() {
     if (minConfidence !== undefined && !verify) {
         core.warning("min_confidence requires verify to be enabled. Ignoring min_confidence.");
     }
+    const failOnRaw = core.getInput("fail_on");
+    const failOnUpper = failOnRaw.toUpperCase();
+    const validSeverities = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+    let failOn;
+    if (failOnRaw) {
+        if (validSeverities.includes(failOnUpper)) {
+            failOn = failOnUpper;
+        }
+        else {
+            core.warning(`Invalid fail_on value "${failOnRaw}". Must be one of: critical, high, medium, low. Ignoring.`);
+        }
+    }
     return {
         githubToken,
         verify,
         sast,
         instructions,
         minConfidence: verify ? minConfidence : undefined,
+        failOn,
     };
 }
 
@@ -30400,6 +30413,11 @@ async function run() {
         });
         await (0, github_1.createReview)(octokit, ctx, comments);
         core.info(`Review completed: ${issues.length} issue(s) found`);
+        // Check fail_on quality gate (after posting comments so review is visible)
+        const failMessage = (0, review_1.checkFailOn)(issues, inputs.failOn);
+        if (failMessage) {
+            core.setFailed(failMessage);
+        }
     }
     catch (error) {
         if (error instanceof Error) {
@@ -30557,6 +30575,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.filterByConfidence = filterByConfidence;
+exports.checkFailOn = checkFailOn;
 exports.runReview = runReview;
 exports.parseReviewOutput = parseReviewOutput;
 const exec = __importStar(__nccwpck_require__(5236));
@@ -30575,6 +30594,22 @@ function filterByConfidence(issues, minConfidence) {
         }
         return issue.confidence >= minConfidence;
     });
+}
+const SEVERITY_RANK = {
+    CRITICAL: 4,
+    HIGH: 3,
+    MEDIUM: 2,
+    LOW: 1,
+};
+function checkFailOn(issues, failOn) {
+    if (!failOn) {
+        return undefined;
+    }
+    const threshold = SEVERITY_RANK[failOn];
+    if (issues.some((issue) => SEVERITY_RANK[issue.severity] >= threshold)) {
+        return `Review found issue(s) at or above ${failOn} severity (fail_on: ${failOn.toLowerCase()})`;
+    }
+    return undefined;
 }
 async function runReview(config) {
     const version = (0, config_1.getVersion)();

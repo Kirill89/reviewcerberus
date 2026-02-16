@@ -2,7 +2,7 @@ import * as exec from "@actions/exec";
 import * as fs from "fs";
 import * as path from "path";
 import { getVersion } from "./config";
-import { ReviewIssue, ReviewOutput } from "./types";
+import { ReviewIssue, ReviewOutput, Severity } from "./types";
 
 const OUTPUT_FILE = ".reviewcerberus-output.json";
 
@@ -30,6 +30,27 @@ export function filterByConfidence(
     }
     return issue.confidence >= minConfidence;
   });
+}
+
+const SEVERITY_RANK: Record<Severity, number> = {
+  CRITICAL: 4,
+  HIGH: 3,
+  MEDIUM: 2,
+  LOW: 1,
+};
+
+export function checkFailOn(
+  issues: ReviewIssue[],
+  failOn?: Severity
+): string | undefined {
+  if (!failOn) {
+    return undefined;
+  }
+  const threshold = SEVERITY_RANK[failOn];
+  if (issues.some((issue) => SEVERITY_RANK[issue.severity] >= threshold)) {
+    return `Review found issue(s) at or above ${failOn} severity (fail_on: ${failOn.toLowerCase()})`;
+  }
+  return undefined;
 }
 
 export async function runReview(config: ReviewConfig): Promise<ReviewOutput> {

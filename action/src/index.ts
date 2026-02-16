@@ -13,7 +13,12 @@ import {
   renderSummaryComment,
   sortIssuesBySeverity,
 } from "./render";
-import { filterByConfidence, runReview, ReviewConfig } from "./review";
+import {
+  checkFailOn,
+  filterByConfidence,
+  runReview,
+  ReviewConfig,
+} from "./review";
 import { ReviewComment } from "./types";
 
 async function run(): Promise<void> {
@@ -100,6 +105,12 @@ async function run(): Promise<void> {
     await createReview(octokit, ctx, comments);
 
     core.info(`Review completed: ${issues.length} issue(s) found`);
+
+    // Check fail_on quality gate (after posting comments so review is visible)
+    const failMessage = checkFailOn(issues, inputs.failOn);
+    if (failMessage) {
+      core.setFailed(failMessage);
+    }
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message);

@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import * as fs from "fs";
 import * as path from "path";
+import { Severity } from "./types";
 
 /**
  * Reads the CLI version from pyproject.toml.
@@ -93,6 +94,7 @@ export interface ActionInputs {
   sast: boolean;
   instructions?: string;
   minConfidence?: number;
+  failOn?: Severity;
 }
 
 /**
@@ -118,11 +120,26 @@ export function getActionInputs(): ActionInputs {
     );
   }
 
+  const failOnRaw = core.getInput("fail_on");
+  const failOnUpper = failOnRaw.toUpperCase() as Severity;
+  const validSeverities: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+  let failOn: Severity | undefined;
+  if (failOnRaw) {
+    if (validSeverities.includes(failOnUpper)) {
+      failOn = failOnUpper;
+    } else {
+      core.warning(
+        `Invalid fail_on value "${failOnRaw}". Must be one of: critical, high, medium, low. Ignoring.`
+      );
+    }
+  }
+
   return {
     githubToken,
     verify,
     sast,
     instructions,
     minConfidence: verify ? minConfidence : undefined,
+    failOn,
   };
 }
