@@ -21,8 +21,9 @@ const MOCK_HOST =
 
 function readVersion(): string {
   const pyproject = fs.readFileSync(path.join(ROOT, "pyproject.toml"), "utf-8");
-  const match = pyproject.match(/^version\s*=\s*"([^"]+)"/m);
-  if (!match) throw new Error("Could not read version from pyproject.toml");
+  const match = pyproject.match(/^version\s*=\s*"(\d+\.\d+\.\d+)"/m);
+  if (!match)
+    throw new Error("Could not read valid semver version from pyproject.toml");
   return match[1];
 }
 
