@@ -381,6 +381,21 @@ make test
 poetry run pytest -v
 ```
 
+### Integration Test (act)
+
+End-to-end test of the GitHub Action using [act](https://github.com/nektos/act)
+with mock Ollama and GitHub API servers:
+
+```bash
+make act-test
+```
+
+Prerequisites: [Docker](https://www.docker.com/) and
+[act](https://github.com/nektos/act) must be installed.
+
+This builds the Docker image, starts mock servers, runs the full action workflow
+locally, then verifies the recorded API requests with vitest.
+
 ### Linting & Formatting
 
 ```bash
