@@ -2,10 +2,27 @@ name: CI
 
 on:
   pull_request:
-    branches: [ "*" ]
+    branches: ["*"]
 
 jobs:
-  lint-and-test:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install dependencies
+        run: make install
+      - name: Run lint
+        run: make lint
+
+  test:
     runs-on: ubuntu-latest
     env:
       # Dummy credentials for config validation during test collection
@@ -18,14 +35,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
       - name: Install Poetry
         run: pipx install poetry
+      - name: Install act
+        run: curl -sfL https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash -s -- -b /usr/local/bin
       - name: Install dependencies
-        run: poetry install
-      - name: Run lint
-        run: make lint
-      - name: Run tests (excluding integration)
-        run: poetry run pytest -v --ignore=tests/test_integration.py
+        run: make install
+      - name: Run tests
+        run: make test
+      - name: Build action
+        run: cd action && npm run build
+      - name: Check action dist is up to date
+        run: |
+          git diff --exit-code action/dist/ || \
+            (echo "action/dist/ is out of date. Run 'cd action && npm run build' and commit." && exit 1)
 
   check-version:
     runs-on: ubuntu-latest
