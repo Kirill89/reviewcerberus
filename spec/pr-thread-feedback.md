@@ -1,449 +1,248 @@
-# Plan: PR Thread Feedback + Action Testing Infrastructure
+# PR Thread Feedback — Intelligent Issue Retention
 
 ## Context
 
-ReviewCerberus posts inline review comments on PRs. On re-runs, all old threads
-are resolved and new ones created fresh — losing any user feedback. Users want
-to reply to the bot's findings ("this isn't an issue because X") and have the
-bot respect that on the next run.
+ReviewCerberus resolves all old threads and creates fresh ones on every re-run.
+User feedback (replies to bot comments) is lost. We want the bot to:
 
-**Key design decisions:**
+1. Remember previous issues and user replies
+2. Decide which old issues are still valid (retained) vs. should be dropped
+3. Only generate structured output for **new** issues (not re-describe retained
+   ones)
+4. See what code changed since each issue was originally found
 
-- Collect thread conversations (bot finding + user replies) via GitHub GraphQL
-  API **before** the review runs
-- Format them as markdown and pass via `--instructions` to the Docker CLI
-- The Python CLI already appends instructions to the system prompt as "##
-  Additional Review Guidelines" — **no Python code changes needed**
-- Include resolved threads that have user replies (feedback is still valuable)
-- Merge with user-provided `--instructions` when both exist (feedback first,
-  user instructions second)
+Feedback is passed via a new `--feedback` CLI flag (separate from
+`--instructions`). The Python schema gets one new output field:
+`retained_issues: list[str]`.
 
-This plan also sets up local integration testing infrastructure for the GitHub
-Action using [`act`](https://github.com/nektos/act).
+## Design
 
-______________________________________________________________________
-
-## Part 1: Action Testing Infrastructure
-
-### Step 1.1: Configure `act`
-
-**New file:** `.actrc`
+### Issue lifecycle
 
 ```
--P ubuntu-latest=catthehacker/ubuntu:act-latest
+Run 1:
+  LLM → issues (each gets a UUID from the action)
+  Action posts comments: <!-- reviewcerberus-issue:abc123:commitSHA -->
+
+Run 2:
+  Action fetches old threads → extracts issue ID, commit, user replies
+  Action computes diff since original commit for affected files
+  Action passes all this as --feedback to the LLM
+  LLM → { issues: [new only], retained_issues: ["abc123"] }
+  Action resolves threads NOT in retained list (and without user replies)
+  Action keeps threads in retained list OR with user replies
+  Action posts new comments for new issues
 ```
 
-**New file:** `action/__tests__/fixtures/pull_request_event.json`
-
-Realistic PR event payload for `act -e`:
-
-```json
-{
-  "action": "synchronize",
-  "pull_request": {
-    "number": 1,
-    "head": { "sha": "abc123def", "ref": "feature-branch" },
-    "base": { "ref": "main" }
-  },
-  "repository": {
-    "owner": { "login": "test-owner" },
-    "name": "test-repo"
-  }
-}
-```
-
-______________________________________________________________________
-
-### Step 1.2: Add Dry-Run Mode
-
-The action calls Docker (needs LLM API key) and GitHub API (needs real token +
-real PR). Add `REVIEWCERBERUS_DRY_RUN` env var to enable local testing.
-
-**`action/src/review.ts`** — when dry-run is set, `runReview()` returns a
-fixture `ReviewOutput` with sample issues instead of running Docker.
-
-**`action/src/github.ts`** — when dry-run is set, `getReviewThreads()` returns
-mock thread data from `action/__tests__/fixtures/mock_threads.json` instead of
-calling GitHub API. This exercises the full feedback pipeline without a real
-token.
-
-**`action/src/index.ts`** — when dry-run is set, skip writing GitHub API calls
-(resolveOurThreads, createOrUpdateSummary, createReview) and log what would be
-done. The read path (getReviewThreads -> feedback pipeline) still runs with
-injected mock data.
-
-**New file:** `action/__tests__/fixtures/mock_threads.json`
-
-Contains realistic thread data: 2-3 threads with our marker, some with user
-replies, some without, one resolved with a reply. Used by both dry-run mode and
-Vitest tests.
-
-______________________________________________________________________
-
-### Step 1.3: Create Test Workflow for `act`
-
-**New file:** `.github/workflows/test-act.yml`
-
-```yaml
-name: Act Integration Test
-
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  test-action:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: ./action
-        with:
-          model_provider: "anthropic"
-          anthropic_api_key: "fake-key-for-testing"
-        env:
-          REVIEWCERBERUS_DRY_RUN: "true"
-```
-
-Validates: action.yml is valid, dist/index.js loads, input parsing works, the
-feedback flow integrates correctly.
-
-______________________________________________________________________
-
-### Step 1.4: Add Vitest Tests for GitHub API Module
-
-**New file:** `action/__tests__/github.test.ts`
-
-Test `getReviewThreads()` and `resolveOurThreads()` with a mocked Octokit
-object. Use `vi.fn()` to mock `octokit.graphql` and `octokit.rest.*` methods.
-
-These functions are currently untested.
-
-______________________________________________________________________
-
-### Step 1.5: Add Makefile Target
-
-**Modify:** `Makefile`
-
-```makefile
-act-test:
-	cd action && npm run build
-	act pull_request \
-	  -e action/__tests__/fixtures/pull_request_event.json \
-	  -W .github/workflows/test-act.yml \
-	  --env REVIEWCERBERUS_DRY_RUN=true \
-	  -s GITHUB_TOKEN=fake-token
-```
-
-______________________________________________________________________
-
-### Step 1.6: Verify
-
-```bash
-brew install act             # if not installed
-make act-test                # should complete without errors
-cd action && npm test        # existing + new github.test.ts should pass
-```
-
-______________________________________________________________________
-
-## Part 2: PR Thread Feedback Feature
-
-### Step 2.1: Expand GraphQL Query
-
-**Modify:** `action/src/github.ts`
-
-Current query (`getReviewThreads`) fetches `comments(first: 1)` with only
-`body`. Expand to fetch all comments with author info, plus thread path/line.
-
-Updated `ReviewThread` interface:
-
-```typescript
-interface ReviewThreadComment {
-  body: string;
-  author: { login: string } | null;
-}
-
-interface ReviewThread {
-  id: string;
-  isResolved: boolean;
-  path: string | null;
-  line: number | null;
-  comments: {
-    nodes: ReviewThreadComment[];
-  };
-}
-```
-
-Updated GraphQL query:
-
-```graphql
-reviewThreads(first: 100) {
-  nodes {
-    id
-    isResolved
-    path
-    line
-    comments(first: 100) {
-      nodes {
-        body
-        author { login }
-      }
-    }
-  }
-}
-```
-
-The existing `resolveOurThreads()` continues to work unchanged — it only reads
-the first comment's body for the marker check.
-
-______________________________________________________________________
-
-### Step 2.2: Create Feedback Module
-
-**New file:** `action/src/feedback.ts`
-
-Pure functions + temp file helpers:
-
-**`collectThreadFeedback(threads: ReviewThread[]): ThreadFeedback[]`**
-
-- Filter to threads where first comment has `MARKER_ISSUE` (our threads)
-- Filter to threads where `comments.nodes.length > 1` (has user replies)
-- Include both resolved and unresolved threads (resolved with replies = valuable
-  feedback)
-- Extract the issue title from the bot comment markdown
-  (`### EMOJI SEVERITY: Title`)
-
-```typescript
-interface ThreadFeedback {
-  path: string | null;
-  line: number | null;
-  issueTitle: string;
-  botComment: string;
-  userReplies: Array<{
-    author: string;
-    body: string;
-  }>;
-}
-```
-
-**`formatFeedbackAsInstructions(feedback: ThreadFeedback[]): string`**
-
-Returns empty string if no feedback. Otherwise produces:
+### What the LLM receives (in system prompt via --feedback)
 
 ```markdown
-## Previous Review Feedback
+## Previous Review Issues
 
-The following are conversations from previous review runs on this PR.
-Users have replied to some findings. Take their feedback into account:
-- If a user explains why a finding is not an issue, do NOT re-report it
-- If a user provides context that affects the assessment, adjust accordingly
-- Apply user feedback broadly: if feedback on one finding implies other similar
-  findings are also invalid, do not report those either
-- You may still report genuinely new issues
+Below are issues from a previous review run. For each issue, you can see:
+- The original finding (title, category, severity, location)
+- Any replies from the PR author
+- What changed in the affected file since the issue was found
 
-### Thread: [issue title]
-**File:** `path/to/file.py` (line 42)
-**Bot finding:**
-[truncated bot comment, ~500 chars max]
-**Reply (@username):** [user reply]
-**Reply (@another):** [another reply]
+For each previous issue, decide whether it should be RETAINED or DROPPED:
+- RETAIN if: the issue is still present in the code, regardless of user replies
+- DROP if: the code was fixed, or the author explained why it's not an issue
+  and their reasoning is sound
+- If the author said "fixed" but the code didn't change, RETAIN the issue
+
+Add retained issue IDs to the `retained_issues` array in your output.
+Do NOT re-describe retained issues in the `issues` array — only report
+genuinely NEW findings there.
+
+---
+
+### Issue abc123
+**Title:** Unused variable
+**Category:** QUALITY | **Severity:** LOW
+**File:** `app.py` (line 2)
+**Found at commit:** 6a0cb09
+
+**Author reply (@developer):**
+> This is intentional for debugging
+
+**Changes to `app.py` since 6a0cb09:**
+(no changes)
+
+---
 ```
 
-**`mergeInstructions(workspace, userInstructionsPath, feedbackText): string | undefined`**
+### Comment marker format
 
-- No feedback + no user instructions -> `undefined`
-- Only user instructions -> return original path unchanged (no temp file)
-- Feedback exists -> read user instructions file (if any), combine (feedback
-  first, user instructions second), write to
-  `${workspace}/.reviewcerberus-instructions.md`, return
-  `.reviewcerberus-instructions.md` (relative path for Docker mount)
+Current: `<!-- reviewcerberus-issue -->` New:
+`<!-- reviewcerberus-issue:ISSUE_ID:COMMIT_SHA -->`
 
-**`cleanupFeedbackFile(workspace): void`**
+Where:
 
-Delete `.reviewcerberus-instructions.md` if it exists. Called in `finally`
-block.
+- `ISSUE_ID` = 8-char random hex (crypto.randomUUID().slice(0,8))
+- `COMMIT_SHA` = the PR head commit SHA at time of posting
 
-______________________________________________________________________
+## Implementation
 
-### Step 2.3: Wire into `index.ts`
+### Step 1: Update comment marker (`action/src/render.ts`)
 
-**Modify:** `action/src/index.ts`
+- `renderLineComment()` gains `issueId` and `commitSha` params
+- Marker becomes `<!-- reviewcerberus-issue:ISSUE_ID:COMMIT_SHA -->`
+- Existing `MARKER_ISSUE` detection still works (`.includes()`)
+- Add `parseIssueMarker(body)` helper → `{ issueId, commitSha } | null`
 
-Insert between git fetch (line 49) and config building (line 52):
+### Step 2: Expand GraphQL query (`action/src/github.ts`)
 
-```typescript
-// Collect thread feedback for LLM context
-const threads = await getReviewThreads(octokit, ctx);
-const feedback = collectThreadFeedback(threads);
-if (feedback.length > 0) {
-  core.info(`Found ${feedback.length} thread(s) with user feedback`);
-}
-const feedbackText = formatFeedbackAsInstructions(feedback);
+- `comments(first: 1)` → `comments(first: 20)`
+- Add `path`, `line`, `author { login }` to the query
+- Update `ReviewThread` interface to include these fields
 
-// Merge with user-provided instructions
-const effectiveInstructions = mergeInstructions(
-  workspace,
-  inputs.instructions,
-  feedbackText
-);
+### Step 3: Thread classification (`action/src/feedback.ts` — new file)
 
-// Build review config (instructions now includes feedback)
-const config: ReviewConfig = {
-  workspace,
-  targetBranch,
-  verify: inputs.verify,
-  sast: inputs.sast,
-  instructions: effectiveInstructions,
-  env: dockerEnv,
-};
+`classifyThreads(threads)` → `ClassifiedThread[]`
+
+Each `ClassifiedThread` contains: threadId (GraphQL), issueId (from marker),
+commitSha, path, line, isResolved, botComment, userReplies, hasUserReply.
+
+Logic:
+
+- Filter to threads where first comment contains `MARKER_ISSUE`
+- Parse `issueId` and `commitSha` from marker
+- First comment author = bot; any other author = user reply
+- Threads without parseable markers (old format) → treat as no-ID, resolve
+  normally
+
+### Step 4: Build feedback content (`action/src/feedback.ts`)
+
+`buildFeedbackInstructions(classified, workspace)` → markdown string
+
+For each classified thread with a valid issueId:
+
+1. Extract title/category/severity from bot comment markdown
+2. Compute diff since original commit: `git diff <commitSha>..HEAD -- <path>`
+3. Format as the markdown block shown in the design section above
+
+Returns empty string if no previous issues.
+
+### Step 5: Wire feedback into review flow (`action/src/index.ts`)
+
+New flow (replacing lines 51-105):
+
+```
+1. Fetch + classify threads
+2. Build feedback content (includes git diffs)
+3. Write feedback file to workspace
+4. Run review (with --feedback flag + existing --instructions if any)
+5. Parse retained_issues from output
+6. Selective resolution:
+   - Resolve threads NOT retained AND NOT having user replies
+   - Keep threads that ARE retained OR have user replies
+7. Post summary + new issue comments (with IDs + commit SHA in markers)
+8. Clean up feedback file
 ```
 
-Wrap review + GitHub API calls in try/finally for cleanup:
+The feedback file:
 
-```typescript
-try {
-  const reviewOutput = await runReview(config);
-  // ... existing filtering, commenting, fail_on ...
-} finally {
-  cleanupFeedbackFile(workspace);
-}
-```
+- Write feedback markdown to `.reviewcerberus-feedback.md` in workspace
+- Pass as `--feedback /repo/.reviewcerberus-feedback.md` to Docker
+- `--instructions` remains separate (user-provided instructions, unchanged)
+- Clean up feedback file after review completes
 
-______________________________________________________________________
+### Step 6: Add `--feedback` flag to Python CLI
 
-### Step 2.4: Update `.gitignore`
+- **`src/main.py`** — add `--feedback` argument, read file content, pass to
+  `run_review()`
+- **`src/agent/runner.py`** — accept `thread_feedback` param, pass to
+  `build_review_system_prompt()`
+- **`src/agent/agent.py`** — thread `thread_feedback` through to
+  `build_review_system_prompt()`
+- **`src/agent/prompts/__init__.py`** — append feedback to system prompt
 
-Add `.reviewcerberus-instructions.md` so the temp file doesn't get committed.
+Prompt ordering: base prompt → SAST guidance → **thread feedback** → user
+instructions (user instructions last = highest precedence).
 
-______________________________________________________________________
+### Step 7: Add `--feedback` to Docker args (`action/src/review.ts`)
 
-## Part 3: Tests for the Feature
+Add `feedback?: string` to `ReviewConfig`. When set, push `--feedback <path>` to
+Docker args.
 
-### Step 3.1: Unit Tests for Feedback Module
+### Step 8: Update Python schema (`src/agent/schema.py`)
 
-**New file:** `action/__tests__/feedback.test.ts`
+Add `retained_issues: list[str]` field (default empty) to `PrimaryReviewOutput`.
 
-**`collectThreadFeedback`:**
+### Step 9: Update system prompt (`src/agent/prompts/full_review.md`)
 
-- Returns `[]` when no threads
-- Returns `[]` when threads have no user replies (only bot comment)
-- Returns `[]` when threads don't have our marker
-- Collects threads with marker + user replies
-- Extracts issue title from bot comment markdown
-- Handles multiple user replies per thread
-- Includes resolved threads that have user replies
-- Handles null author gracefully (uses "unknown")
+Add `retained_issues` to the OUTPUT REQUIREMENTS section — array of issue ID
+strings for previous issues that are still valid.
 
-**`formatFeedbackAsInstructions`:**
+### Step 10: Update review output parsing (`action/src/types.ts`)
 
-- Returns empty string when no feedback
-- Formats single thread with header, bot finding, user reply
-- Formats multiple threads
-- Truncates long bot findings to ~500 chars
-- Includes file path and line info
-- Omits line when null
+Add `retained_issues?: string[]` to `ReviewOutput` interface.
 
-**`mergeInstructions`:**
+### Step 11: Update act-test mock
 
-- Returns `undefined` when neither feedback nor user instructions exist
-- Returns original user instructions path when no feedback
-- Creates temp file with feedback when no user instructions
-- Creates temp file with both merged (feedback first) when both exist
-- Reads user instructions file content correctly
+**`act-test/github-routes.ts`**: Return a thread with a user reply and the new
+marker format so the full flow is exercised.
 
-______________________________________________________________________
+**`act-test/fixtures/review-output.json`**: Add `retained_issues` field.
 
-### Step 3.2: Integration Test for the Full Flow
+**`act-test/verify.test.ts`**: Add assertions:
 
-**New file:** `action/__tests__/integration/feedback-flow.test.ts`
+- Thread with user reply is NOT resolved
+- LLM system prompt contains "Previous Review Issues"
+- New comments include issue ID in marker
 
-End-to-end test: mock thread data -> collectThreadFeedback ->
-formatFeedbackAsInstructions -> mergeInstructions. Verify final instructions
-file is well-formed and contains both feedback and user instructions.
+## Files changed
 
-______________________________________________________________________
-
-### Step 3.3: Expand `github.test.ts`
-
-Add tests for the expanded `getReviewThreads` query:
-
-- Returns full comment list with author info
-- Includes path and line fields
-- Handles threads with null path/line
-
-______________________________________________________________________
-
-### Step 3.4: Rebuild and Smoke Test
-
-```bash
-cd action && npm test && npm run build
-make act-test
-```
-
-______________________________________________________________________
-
-## Files Summary
-
-### New files (8)
+### New files
 
 | File | Purpose |
 | -- | -- |
-| `spec/pr-thread-feedback.md` | This specification |
-| `action/src/feedback.ts` | Thread feedback collection, formatting, merging |
-| `action/__tests__/feedback.test.ts` | Unit tests for feedback module |
-| `action/__tests__/github.test.ts` | Tests for GitHub API functions (mocked Octokit) |
-| `action/__tests__/integration/feedback-flow.test.ts` | Integration test for feedback flow |
-| `action/__tests__/fixtures/pull_request_event.json` | Mock event payload for `act` |
-| `action/__tests__/fixtures/mock_threads.json` | Mock thread data for dry-run + tests |
-| `.actrc` | Default `act` configuration |
+| `action/src/feedback.ts` | Thread classification + feedback instruction builder |
+| `action/__tests__/feedback.test.ts` | Unit tests for classification and feedback |
 
-### Modified files (5)
+### Modified files
 
 | File | Change |
 | -- | -- |
-| `action/src/github.ts` | Expand GraphQL query: all comments, author, path, line |
-| `action/src/index.ts` | Wire feedback collection before runReview(), add cleanup |
-| `action/src/review.ts` | Add dry-run mode for `act` testing |
-| `.gitignore` | Add `.reviewcerberus-instructions.md` |
-| `Makefile` | Add `act-test` target |
+| `action/src/github.ts` | Expand GraphQL query (comments, path, line, author) |
+| `action/src/render.ts` | Issue ID + commit SHA in markers; marker parser |
+| `action/src/index.ts` | New flow: classify → feedback → review → selective resolve |
+| `action/src/review.ts` | Add `feedback` to `ReviewConfig`, pass `--feedback` to Docker |
+| `action/src/types.ts` | Add `retained_issues` to `ReviewOutput` |
+| `src/main.py` | Add `--feedback` CLI flag |
+| `src/agent/runner.py` | Thread `thread_feedback` parameter through |
+| `src/agent/agent.py` | Thread `thread_feedback` parameter through |
+| `src/agent/prompts/__init__.py` | Append feedback to system prompt (before instructions) |
+| `src/agent/schema.py` | Add `retained_issues` field to `PrimaryReviewOutput` |
+| `src/agent/prompts/full_review.md` | Document `retained_issues` in output requirements |
+| `act-test/github-routes.ts` | Mock thread with user reply + new marker format |
+| `act-test/fixtures/review-output.json` | Add `retained_issues` to mock output |
+| `act-test/verify.test.ts` | New assertions for feedback flow |
 
-### Also update
+### NOT changed
 
-| File | Change |
+| File | Why |
 | -- | -- |
-| `action/dist/index.js` | Rebuild: `cd action && npm run build` |
-| `spec/implementation-summary.md` | Document the new feature |
+| `action/action.yml` | No new inputs — feedback is automatic |
+| `Dockerfile` | No changes |
 
-______________________________________________________________________
-
-## Edge Cases
+## Edge cases
 
 | Scenario | Behavior |
 | -- | -- |
-| No threads on PR | No feedback, instructions pass through unchanged |
-| Threads without user replies | Skipped (no feedback to incorporate) |
-| Resolved threads with user replies | Included (user feedback is still valuable) |
-| User also provides `--instructions` | Both merged into temp file (feedback first, then user instructions) |
-| Author is null (deleted account) | Use "unknown" as author name |
-| Very large feedback (many threads) | Truncate bot comments to ~500 chars each |
-| Temp file cleanup on error | `finally` block ensures cleanup |
-| Dry-run mode | Injects fixture data, skips Docker + write API calls |
-| First run on a PR (no prior review) | No threads with our marker, no feedback |
-
-______________________________________________________________________
+| First run (no old threads) | No feedback section, normal review |
+| Old threads with old marker format (no ID) | Resolved normally (backward compat) |
+| User reply + code changed | LLM sees the diff and decides |
+| User reply + code unchanged | LLM sees empty diff, respects feedback |
+| User said "fixed" + code unchanged | LLM sees empty diff, retains issue |
+| retained_issues contains unknown ID | Ignored (thread already resolved or doesn't exist) |
+| No retained_issues in output | All old threads resolved (except those with user replies) |
+| Thread with user reply but NOT retained | Kept open anyway (user engagement preserved) |
 
 ## Verification
 
-1. `cd action && npm test` — all new + existing tests pass
-2. `cd action && npm run build` — bundle builds
-3. `cd action && npm run lint && npm run format:check` — passes
-4. `make act-test` — act smoke test completes
-5. Manual test: create a PR, run the action, reply to a thread, re-run the
-   action, verify the replied issue is not re-reported
+```bash
+cd action && npm test          # unit tests including feedback.test.ts
+cd action && npm run build     # rebuild dist
+make test                      # full suite including act e2e
+```
