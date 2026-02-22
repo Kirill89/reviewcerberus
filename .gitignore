@@ -22,3 +22,7 @@ review_*.json
 # Action
 action/node_modules/
 .reviewcerberus-output.json
+
+# Act test
+act-test/node_modules/
+act-test/.mock-requests.json

@@ -1,0 +1,19 @@
+{
+  "action": "synchronize",
+  "pull_request": {
+    "number": 1,
+    "head": {
+      "sha": "abc123def456",
+      "ref": "test-branch"
+    },
+    "base": {
+      "ref": "main"
+    }
+  },
+  "repository": {
+    "owner": {
+      "login": "test-owner"
+    },
+    "name": "test-repo"
+  }
+}

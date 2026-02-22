@@ -1,0 +1,24 @@
+name: Act Integration Test
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  test-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./action
+        with:
+          github_token: "fake-token-for-act"
+          model_provider: "ollama"
+          model_name: "mock-model"
+          ollama_base_url: "http://{{MOCK_HOST}}:{{OLLAMA_PORT}}"
