@@ -6,7 +6,7 @@ import stat
 import urllib.request
 from pathlib import Path
 
-OPENGREP_VERSION = "1.16.0"
+OPENGREP_VERSION = "1.26.0"
 
 PLATFORM_BINARIES = {
     ("Linux", "x86_64"): "opengrep_manylinux_x86",
