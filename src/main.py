@@ -12,11 +12,12 @@ from .agent.git_utils import (
     get_current_branch,
     get_repo_root,
 )
+from .agent.providers.openai import load_credentials
 from .agent.runner import run_review
 from .agent.sast import run_sast_scan
 from .agent.schema import PrimaryReviewOutput
 from .agent.verification import VerifiedReviewOutput, run_verification
-from .config import MODEL_NAME, MODEL_PROVIDER
+from .config import MODEL_NAME, MODEL_PROVIDER, OPENAI_API_KEY
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -137,6 +138,13 @@ def main() -> None:
         sys.exit(0)
 
     print_changed_files_summary(changed_files)
+
+    if MODEL_PROVIDER == "openai" and not OPENAI_API_KEY.get_secret_value():
+        try:
+            load_credentials()
+        except ValueError as error:
+            print(f"Error loading Codex credentials: {error}", file=sys.stderr)
+            sys.exit(1)
 
     print("Starting code review...")
     print()
