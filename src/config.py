@@ -8,6 +8,9 @@ load_dotenv()
 # Model provider selection
 MODEL_PROVIDER = os.getenv("MODEL_PROVIDER", "bedrock")
 
+# OpenAI: read Codex auth.json unless an explicit API key is supplied.
+OPENAI_API_KEY = SecretStr(os.getenv("OPENAI_API_KEY", ""))
+
 # AWS Bedrock configuration (required only if MODEL_PROVIDER=bedrock)
 # Note: boto3 expects strings, so we keep these as strings
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
@@ -31,6 +34,8 @@ MOONSHOT_API_BASE = os.getenv("MOONSHOT_API_BASE", "https://api.moonshot.ai/v1")
 # Model configuration
 def _get_default_model() -> str:
     match MODEL_PROVIDER:
+        case "openai":
+            return "gpt-6-astra"
         case "bedrock":
             return "us.anthropic.claude-opus-4-5-20251101-v1:0"
         case "anthropic":
@@ -65,11 +70,14 @@ elif MODEL_PROVIDER == "anthropic":
 elif MODEL_PROVIDER == "ollama":
     # Ollama has no required credentials, base_url has default
     pass
+elif MODEL_PROVIDER == "openai":
+    # Credentials are resolved lazily so --help works before signing in.
+    pass
 elif MODEL_PROVIDER == "moonshot":
     if not _moonshot_key:
         raise ValueError("MOONSHOT_API_KEY is required when MODEL_PROVIDER=moonshot")
 else:
     raise ValueError(
         f"Invalid MODEL_PROVIDER: {MODEL_PROVIDER}. "
-        f"Must be 'bedrock', 'anthropic', 'ollama', or 'moonshot'"
+        f"Must be 'bedrock', 'anthropic', 'ollama', 'moonshot', or 'openai'"
     )

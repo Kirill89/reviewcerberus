@@ -44,6 +44,8 @@ ENV OPENGREP_BINARY_PATH="/usr/local/bin/opengrep"
 # cache dirs even when GitHub Action overrides USER with --user flag
 RUN mkdir -p /home/app && chmod 777 /home/app
 ENV HOME="/home/app"
+ENV OPENAI_AUTH_FILE="/.codex/auth.json"
+ENV PYTHONUNBUFFERED=1
 
 # Create non-root user and set up permissions
 RUN useradd -m -u 1000 -s /bin/bash reviewcerberus && \

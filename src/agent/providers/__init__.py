@@ -9,6 +9,7 @@ from .anthropic import create_anthropic_model
 from .bedrock import create_bedrock_model
 from .moonshot import create_moonshot_model
 from .ollama import create_ollama_model
+from .openai import create_openai_model
 
 # Registry mapping provider names to factory functions
 PROVIDER_REGISTRY = {
@@ -16,6 +17,7 @@ PROVIDER_REGISTRY = {
     "anthropic": create_anthropic_model,
     "ollama": create_ollama_model,
     "moonshot": create_moonshot_model,
+    "openai": create_openai_model,
 }
 
 

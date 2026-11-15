@@ -13,7 +13,7 @@ comprehensive review reports with structured output.
 - **Comprehensive Reviews**: Detailed analysis of logic, security, performance,
   and code quality
 - **Structured Output**: Issues organized by severity with summary table
-- **Multi-Provider**: AWS Bedrock, Anthropic API, Ollama, or Moonshot
+- **Multi-Provider**: AWS Bedrock, Anthropic API, Ollama, Moonshot, or OpenAI
 - **Smart Analysis**: Context provided upfront with prompt caching
 - **Git Integration**: Works with any repository, supports commit hashes
 - **Verification Mode**: Experimental
@@ -209,7 +209,7 @@ All configuration via environment variables (`.env` file):
 ### Provider Selection
 
 ```bash
-MODEL_PROVIDER=bedrock  # or "anthropic", "ollama", "moonshot" (default: bedrock)
+MODEL_PROVIDER=bedrock  # or "anthropic", "ollama", "moonshot", "openai" (default: bedrock)
 ```
 
 ### AWS Bedrock (if MODEL_PROVIDER=bedrock)
@@ -266,6 +266,41 @@ MOONSHOT_API_KEY=sk-your-api-key-here
 MOONSHOT_API_BASE=https://api.moonshot.ai/v1  # optional, default
 MODEL_NAME=kimi-k2.5                          # optional
 ```
+
+### OpenAI (CLI / Docker)
+
+Set `MODEL_PROVIDER=openai` to use OpenAI. `MODEL_NAME` defaults to
+`gpt-6-astra`; access depends on your account.
+
+For API billing, set `OPENAI_API_KEY`. Otherwise, ReviewCerberus reads the
+ChatGPT login in your Codex `auth.json`. The API key takes precedence.
+
+For the local CLI:
+
+```bash
+MODEL_PROVIDER=openai poetry run reviewcerberus --repo-path /path/to/repo
+```
+
+The auth file defaults to `$CODEX_HOME/auth.json`, or `~/.codex/auth.json`. Set
+`OPENAI_AUTH_FILE` to override it. If Codex uses the OS keychain, create a file
+login with `codex -c cli_auth_credentials_store='"file"' login`.
+
+For Docker, run the published image from the repository to review:
+
+```bash
+docker run --rm -it -v $(pwd):/repo \
+  --user "$(id -u):$(id -g)" \
+  -v "${CODEX_HOME:-$HOME/.codex}/auth.json:/.codex/auth.json:ro" \
+  -e MODEL_PROVIDER=openai \
+  kirill89/reviewcerberus:latest \
+  --repo-path /repo --output /repo/review.md
+```
+
+Codex login support is experimental. The file is read-only; ReviewCerberus does
+not refresh credentials or launch a browser login. If authentication expires,
+sign in with Codex on the host and restart the container. Also restart after
+replacing the host file, because a single-file bind mount can retain its old
+contents. For OpenAI, `MAX_OUTPUT_TOKENS` applies only to API-key mode.
 
 ### Optional Settings
 
