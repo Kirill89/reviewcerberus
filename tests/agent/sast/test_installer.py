@@ -17,14 +17,14 @@ def test_get_binary_name_linux_x86() -> None:
     with patch("src.agent.sast.installer.platform.system", return_value="Linux"), patch(
         "src.agent.sast.installer.platform.machine", return_value="x86_64"
     ):
-        assert _get_binary_name() == "opengrep_manylinux_x86"
+        assert _get_binary_name() == "opengrep_linux_x86"
 
 
 def test_get_binary_name_linux_aarch64() -> None:
     with patch("src.agent.sast.installer.platform.system", return_value="Linux"), patch(
         "src.agent.sast.installer.platform.machine", return_value="aarch64"
     ):
-        assert _get_binary_name() == "opengrep_manylinux_aarch64"
+        assert _get_binary_name() == "opengrep_linux_aarch64"
 
 
 def test_get_binary_name_macos_arm64() -> None:

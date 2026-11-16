@@ -2,11 +2,14 @@
 
 import json
 import subprocess
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.agent.sast.installer import ensure_opengrep_binary
 from src.agent.sast.scanner import _trim_findings, run_sast_scan
+from tests.test_helper import create_test_repo
 
 # Sample opengrep JSON output (realistic structure)
 SAMPLE_OPENGREP_OUTPUT = {
@@ -178,3 +181,81 @@ def test_run_sast_scan_passes_correct_args() -> None:
         text=True,
         check=True,
     )
+
+
+@pytest.mark.parametrize("stderr", ["Scanning 1210 files with 1074 rules", ""])
+def test_run_sast_scan_reports_json_errors(stderr: str) -> None:
+    error = subprocess.CalledProcessError(
+        2,
+        "opengrep",
+        output=json.dumps(
+            {
+                "results": [],
+                "errors": [
+                    {"message": "Scanner engine failed on legacy.py"},
+                    {"message": "Additional engine diagnostic"},
+                ],
+            }
+        ),
+        stderr=stderr,
+    )
+    with patch(
+        "src.agent.sast.scanner.ensure_opengrep_binary", return_value="opengrep"
+    ), patch("src.agent.sast.scanner.subprocess.run", side_effect=error), pytest.raises(
+        RuntimeError
+    ) as raised:
+        run_sast_scan("/test/repo", "main")
+
+    assert "Scanner engine failed on legacy.py" in str(raised.value)
+    assert "Additional engine diagnostic" in str(raised.value)
+    assert "exit code 2" in str(raised.value)
+
+
+@pytest.mark.parametrize("stdout", ["not JSON", "", '{"errors": []}'])
+def test_run_sast_scan_falls_back_to_stderr(stdout: str) -> None:
+    error = subprocess.CalledProcessError(
+        2, "opengrep", output=stdout, stderr="invalid config"
+    )
+    with patch(
+        "src.agent.sast.scanner.ensure_opengrep_binary", return_value="opengrep"
+    ), patch("src.agent.sast.scanner.subprocess.run", side_effect=error), pytest.raises(
+        RuntimeError, match="invalid config"
+    ):
+        run_sast_scan("/test/repo", "main")
+
+
+def test_opengrep_scans_cr_only_yaml(tmp_path: Path) -> None:
+    """Exercise the pinned scanner against the line-ending regression."""
+    rules = tmp_path / "rules.yml"
+    rules.write_text(
+        "rules:\n"
+        "  - id: cr-only-yaml\n"
+        "    languages: [yaml]\n"
+        "    message: Found a run step\n"
+        "    severity: WARNING\n"
+        "    pattern: 'run: $CMD'\n"
+    )
+    contents = b"name: test\rjobs:\r  build:\r    steps:\r      - run: echo hello\r"
+    with create_test_repo({"workflow.yml": contents}) as repo:
+        result = subprocess.run(
+            [
+                ensure_opengrep_binary(),
+                "scan",
+                "--config",
+                str(rules),
+                "--json",
+                "--baseline-commit",
+                "main",
+                ".",
+            ],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        findings = json.loads(result.stdout)["results"]
+        assert any(finding["path"] == "workflow.yml" for finding in findings)
+        assert (repo / "workflow.yml").read_bytes() == contents

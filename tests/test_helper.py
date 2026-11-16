@@ -10,7 +10,9 @@ from src.agent.schema import Context
 
 
 @contextmanager
-def create_test_repo() -> Generator[Path, None, None]:
+def create_test_repo(
+    extra_files: dict[str, bytes] | None = None,
+) -> Generator[Path, None, None]:
     repo_path = Path(tempfile.mkdtemp())
 
     def git(*args: Any) -> None:
@@ -33,6 +35,8 @@ def create_test_repo() -> Generator[Path, None, None]:
             "def hello():\n    print('hello world')\n    return True\n"
         )
         (repo_path / "file3.py").write_text("def new_func():\n    pass\n")
+        for name, contents in (extra_files or {}).items():
+            (repo_path / name).write_bytes(contents)
         git("add", ".")
         git("commit", "-m", "Add feature")
 

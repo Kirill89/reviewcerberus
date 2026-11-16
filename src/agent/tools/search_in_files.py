@@ -54,7 +54,9 @@ def _search_impl(
     if file_pattern:
         cmd.extend(["--", file_pattern])
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace"
+    )
 
     if result.returncode != 0 and result.returncode != 1:
         raise RuntimeError(f"Git grep failed: {result.stderr}")
