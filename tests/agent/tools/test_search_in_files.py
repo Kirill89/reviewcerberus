@@ -1,5 +1,7 @@
 import subprocess
 
+import pytest
+
 from src.agent.tools.search_in_files import _search_impl
 from tests.test_helper import create_test_repo
 
@@ -92,3 +94,20 @@ def test_search_context_lines_have_correct_line_numbers() -> None:
         # Line 5 (context after)
         assert 5 in file_lines, f"Line 5 missing. Got lines: {list(file_lines.keys())}"
         assert file_lines[5] == "line5"
+
+
+@pytest.mark.parametrize(
+    ("contents", "expected"),
+    [
+        (b"# caf\xc3(\nreturn 42\n", "# caf\ufffd("),
+        (b"# caf\xe9\nreturn 42\n", "# caf\ufffd"),
+        ("# café\nreturn 42\n".encode("utf-8"), "# café"),
+    ],
+    ids=["invalid-utf8", "latin1", "valid-utf8"],
+)
+def test_search_handles_file_encodings(contents: bytes, expected: str) -> None:
+    with create_test_repo({"legacy.py": contents}) as repo_path:
+        # The match is ASCII; the invalid bytes occur in a context line.
+        result = _search_impl(str(repo_path), "return 42", file_pattern="legacy.py")
+        assert result == {"legacy.py": {1: expected, 2: "return 42"}}
+        assert (repo_path / "legacy.py").read_bytes() == contents

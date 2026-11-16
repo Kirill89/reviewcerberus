@@ -74,8 +74,22 @@ def run_sast_scan(repo_path: str, target_branch: str) -> SastResult | None:
             check=True,
         )
     except subprocess.CalledProcessError as e:
-        stderr = e.stderr.strip() if e.stderr else f"exit code {e.returncode}"
-        raise RuntimeError(f"OpenGrep scan failed: {stderr}") from e
+        try:
+            output = json.loads(e.stdout or "{}")
+        except ValueError:
+            output = {}
+        errors = output.get("errors", []) if isinstance(output, dict) else []
+        messages = []
+        if isinstance(errors, list):
+            messages = [
+                str(error["message"])
+                for error in errors
+                if isinstance(error, dict) and error.get("message")
+            ]
+        details = "\n".join(messages) or (e.stderr or "").strip()
+        raise RuntimeError(
+            f"OpenGrep scan failed (exit code {e.returncode}): {details}"
+        ) from e
 
     trimmed_json, count = _trim_findings(result.stdout)
 
